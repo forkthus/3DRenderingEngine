@@ -3,10 +3,10 @@ A powerful and feature-rich 3D rendering engine built using C++ and OpenGL. This
 You can use GUI to easily manage the objects in the scene.
 
 # Dependencies
-Dear ImGui
-stb
-Assimp
-ImGuiFileDialog
-GLFW
-GLM
-GLAD
+Dear ImGui  
+stb  
+Assimp  
+ImGuiFileDialog  
+GLFW  
+GLM  
+GLAD  
