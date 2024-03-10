@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -27,6 +28,7 @@ public:
 	// textures
 	vector<Texture> textures;
 	unsigned int shaderID;
+	queue<unsigned int> textureUnits;
 	// color
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
@@ -49,6 +51,8 @@ public:
 	void setupUniforms(Shader &shader);
 
 	void addTexture(Texture_Type, string&);
+
+	void unbindTextures();
 	
 private:
 	static unsigned int UBO;

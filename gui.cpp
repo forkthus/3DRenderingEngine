@@ -315,17 +315,17 @@ void showLightProperties(Light& l) {
 
 		if (l.type == POINT || l.type == SPOT) {
 			ImGui::SeparatorText("Position");
-			ImGui::DragFloat("X##Position", &l.position.x, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Y##Position", &l.position.y, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Z##Position", &l.position.z, 1.0f, -100.0f, 100.0f);
+			ImGui::DragFloat("X##Position", &l.position.x, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Y##Position", &l.position.y, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Z##Position", &l.position.z, 0.1f, -100.0f, 100.0f);
 		}
 
 		if (l.type == DIRECTIONAL) {
 			DirectionalLight &dl = (DirectionalLight&)l;
 			ImGui::SeparatorText("Direction");
-			ImGui::DragFloat("X##Direction", &dl.direction.x, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Y##Direction", &dl.direction.y, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Z##Direction", &dl.direction.z, 1.0f, -100.0f, 100.0f);
+			ImGui::DragFloat("X##Direction", &dl.direction.x, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Y##Direction", &dl.direction.y, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Z##Direction", &dl.direction.z, 0.1f, -100.0f, 100.0f);
 		}
 		else if (l.type == POINT) {
 			PointLight &pl = (PointLight&)l;
@@ -337,9 +337,9 @@ void showLightProperties(Light& l) {
 		else if (l.type == SPOT) {
 			SpotLight &sl = (SpotLight&)l;
 			ImGui::SeparatorText("Direction");
-			ImGui::DragFloat("X##Direction", &sl.direction.x, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Y##Direction", &sl.direction.y, 1.0f, -100.0f, 100.0f);
-			ImGui::DragFloat("Z##Direction", &sl.direction.z, 1.0f, -100.0f, 100.0f);
+			ImGui::DragFloat("X##Direction", &sl.direction.x, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Y##Direction", &sl.direction.y, 0.1f, -100.0f, 100.0f);
+			ImGui::DragFloat("Z##Direction", &sl.direction.z, 0.1f, -100.0f, 100.0f);
 			ImGui::SeparatorText("Attenuation");
 			ImGui::DragFloat("Constant", &sl.attenuation.constant, 0.1f, 0.0f, 5.0f);
 			ImGui::DragFloat("Linear", &sl.attenuation.linear, 0.01f, 0.0f, 1.0f);
@@ -359,7 +359,7 @@ void showLightProperties(Light& l) {
 		if (ImGui::Button("Close")) {
 			l.showProperties = false;
 		}
-		//l.updateUBO();
+
 		ImGui::End();
 	}
 	else {

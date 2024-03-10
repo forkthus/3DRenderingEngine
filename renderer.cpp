@@ -90,7 +90,7 @@ void Renderer::init() {
 	}
 
 	//addLight(DIRECTIONAL);
-	addLight(POINT);
+	//addLight(POINT);
 	//addLight(SPOT);
 }
 
@@ -298,10 +298,11 @@ void Renderer::render(bool lightVisible) {
 	}
 
 	// unbind the textures from all units
-	for (auto const& [lID, l] : lights) {
-		glActiveTexture(GL_TEXTURE0 + l->textureUnit);
-		glBindTexture(l->type == POINT ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
-	}
+	//for (auto const& [lID, l] : lights) {
+	//	glActiveTexture(GL_TEXTURE0 + l->textureUnit);
+	//	glBindTexture(l->type == POINT ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
+	//}
+	
 }
 
 void Renderer::updateShadowMaps(Shader& shader) {
@@ -329,7 +330,6 @@ void Renderer::updateShadowMaps(Shader& shader) {
 			glBindTexture(GL_TEXTURE_2D, depthMaps[index]);
 			glUniform1i(glGetUniformLocation(shader.ID, ("shadowMap[" + to_string(index) + "]").c_str()), textureUnitOffset);
 			textureUnitOffset++;
-			//glBindTexture(GL_TEXTURE_2D, 0);
 		}
 		else if (l->type == POINT) {
 			if (pointCount >= MAX_SHADOW_MAPS)
@@ -337,9 +337,12 @@ void Renderer::updateShadowMaps(Shader& shader) {
 			l->textureUnit = textureUnitOffset;
 			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMaps[pointCount]);
 			glUniform1i(glGetUniformLocation(shader.ID, ("shadowCubeMap[" + to_string(pointCount) + "]").c_str()), textureUnitOffset);
+			
 			textureUnitOffset++;
-			//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			pointCount++;
+		}
+		else {
+			std::cout << "Invalid light type" << std::endl;
 		}
 	}
 }
@@ -355,8 +358,9 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 				Shader& shader = shadow ? *shaders[shaderID] : *shaders[mat.shaderID];
 
 				if (!shadow) {
-					updateShadowMaps(shader);
 					mat.setupUniforms(shader);
+					updateShadowMaps(shader);
+					
 				}
 
 				shader.use();
@@ -368,6 +372,9 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 				glUseProgram(shader.ID);
 				glUniformMatrix4fv(glGetUniformLocation(shader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 				mesh.draw(shader);
+
+				//if (!shadow)
+				//	mat.unbindTextures();
 			}
 		}
 	}

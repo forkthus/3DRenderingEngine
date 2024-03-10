@@ -134,6 +134,8 @@ void main() {
 	}
 	
 	fragColor = vec4(dir + point + spot, 1.0f);
+	float gamma = 2.2;
+	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
 	// float depthValue = texture(shadowMap[5], textureCoords).r;
 	//fragColor = vec4(vec3(depthValue), 1.0f);
 }
@@ -153,7 +155,11 @@ vec3 calcDirLight(DirLight light, uint index) {
 	// specular light
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
-	float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	// phong
+	// float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	// bling-phong
+	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
 	if (isColor == 1) {
@@ -180,7 +186,7 @@ vec3 calcDirLight(DirLight light, uint index) {
 vec3 calcPointLight(PointLight light, uint index) {
 	vec3 lightDir = normalize(light.position - fragPos);
 	float dist = length(light.position - fragPos);
-	float attenuation = 1.0f / (light.constant + light.linear * dist + light.quadratic * dist * dist);
+	float attenuation = 1.0f / (light.constant + pow(light.linear * dist, 2.2) + pow(light.quadratic * dist * dist, 2.2));
 	vec3 norm = normalize(Normal);
 
 	// ambient light
@@ -193,7 +199,9 @@ vec3 calcPointLight(PointLight light, uint index) {
 	// specular light
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
-	float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	// float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
 	if (isColor == 1) {
@@ -234,7 +242,9 @@ vec3 calcSpotLight(SpotLight light, uint index) {
 	// specular light
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
-	float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	// float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
 	if (isColor == 1) {

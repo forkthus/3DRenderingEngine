@@ -97,6 +97,7 @@ int main() {
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // Makes debugging synchronous
 	glEnable(GL_CULL_FACE);
+
 	glDebugMessageCallback(MessageCallback, 0);
 	// tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
 	stbi_set_flip_vertically_on_load(true);

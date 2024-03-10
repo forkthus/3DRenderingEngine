@@ -10,6 +10,7 @@ using std::string;
 Texture::Texture(Texture_Type tType, string tPath, string tName) : name(tName), path(tPath), type(tType) {
 	// load image
 	int width, height, nrComponents;
+	glActiveTexture(GL_TEXTURE31);
 	glGenTextures(1, &ID);
 
 	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
@@ -25,7 +26,7 @@ Texture::Texture(Texture_Type tType, string tPath, string tName) : name(tName), 
 			format = GL_RGBA;
 
 		glBindTexture(GL_TEXTURE_2D, ID);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
