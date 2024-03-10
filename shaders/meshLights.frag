@@ -214,7 +214,6 @@ vec3 calcPointLight(PointLight light, uint index) {
 	float shadow = calcPointShadow(index, 0.05);
 
 	return (ambient + (1.0 - shadow) * (diffuse + specular)) * attenuation;
-	//return (ambient + diffuse + specular) * attenuation;
 }
 
 vec3 calcSpotLight(SpotLight light, uint index) {

@@ -284,8 +284,9 @@ void Renderer::render(bool lightVisible) {
 		if (l->type != DIRECTIONAL && l->visible) {
 			// create a unit cube to represent the light
 		
-			glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
-			model = glm::translate(model, l->position);
+			glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+			glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(l->position));
+			glm::mat4 model = translate * scale;
 
 			glUseProgram(lightCubeShader);
 			glUniformMatrix4fv(glGetUniformLocation(lightCubeShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
