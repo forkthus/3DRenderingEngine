@@ -11,8 +11,8 @@
 #include "ModelLoader.hpp"
 #include "light.hpp"
 
-extern const unsigned int WINDOW_WIDTH;
-extern const unsigned int WINDOW_HEIGHT;
+extern unsigned int WINDOW_WIDTH;
+extern unsigned int WINDOW_HEIGHT;
 
 const unsigned int SHADOW_WIDTH = 4096;
 const unsigned int SHADOW_HEIGHT = 4096;

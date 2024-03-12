@@ -396,14 +396,11 @@ void showMaterialProperties(Material& m) {
 				ImGui::SameLine();
 				ImVec4 diffuseColor = ImVec4(color.diffuse[0], color.diffuse[1], color.diffuse[2], 1.0f);
 				ImGui::ColorButton("##color", diffuseColor, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker);
-				//if (i % 3 != 0) {
-				//	ImGui::SameLine();
-				//}
-				//i++;
 			}
 		}
 		else {
 			ImGui::Text("Textures");
+			ImGui::DragFloat("Parallax Mapping Height Scale", &m.heightScale, 0.01f, 0.0f, 1.0f);
 
 			// Texture list box
 			if (ImGui::BeginListBox("##Textures")) {

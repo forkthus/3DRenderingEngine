@@ -3,8 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-extern const unsigned int WINDOW_WIDTH;
-extern const unsigned int WINDOW_HEIGHT;
+extern unsigned int WINDOW_WIDTH;
+extern unsigned int WINDOW_HEIGHT;
 
 enum Camera_Move_Direction {
 	FORWARD,

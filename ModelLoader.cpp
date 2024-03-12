@@ -86,6 +86,18 @@ pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene)
 			vertex.normal = vect;
 		}
 
+		// tangents
+		vect.x = mesh->mTangents[i].x;
+		vect.y = mesh->mTangents[i].y;
+		vect.z = mesh->mTangents[i].z;
+		vertex.tangent = vect;
+
+		// bitangents
+		vect.x = mesh->mBitangents[i].x;
+		vect.y = mesh->mBitangents[i].y;
+		vect.z = mesh->mBitangents[i].z;
+		vertex.bitangent = vect;
+
 		// texture coordinates
 		if (mesh->mTextureCoords[0]) {
 			glm::vec2 vec;

@@ -72,6 +72,7 @@ void Material::setupUniforms(Shader& shader) {
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int)	* 1, sizeof(unsigned int), &specularCount);
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 2, sizeof(unsigned int), &normalCount);
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 3, sizeof(unsigned int), &heightCount);
+		glUniform1f(glGetUniformLocation(shader.ID, string("heightScale").c_str()), heightScale);
 	}
 	else {
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 1, sizeof(glm::vec3), glm::value_ptr(ambient));

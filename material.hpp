@@ -29,6 +29,8 @@ public:
 	vector<Texture> textures;
 	unsigned int shaderID;
 	queue<unsigned int> textureUnits;
+	float heightScale;
+
 	// color
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
@@ -42,6 +44,7 @@ public:
 		specular = glm::vec3(0.633f, 0.727811f, 0.633f);
 		showProperties = false;
 		shininess = 32.0f;
+		heightScale = 0.1f;
 		name = "Material " + to_string(id);
 	}
 

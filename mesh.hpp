@@ -76,6 +76,10 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureCoords));
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 		
 		glBindVertexArray(0);
 	}
@@ -111,15 +115,11 @@ public:
 	~Sphere() = default;
 
 	void updateSectors() {
-		//sectorCount = newSectorCount;
-		std::cout<<sectorCount<<std::endl;
 		generateSphere();
 		setupMesh();
 	}
 
 	void updateStacks() {
-		//stackCount = newStackCount;
-		std::cout << stackCount << std::endl;
 		generateSphere();
 		setupMesh();
 	}
@@ -206,23 +206,23 @@ public:
 
 private:
 	void generateCube() {
-		vector<float> vertex_coords {
+		vector<float> vertex_coords{
 			-0.5f, -0.5f, -0.5f,
 			0.5f, -0.5f, -0.5f,
 			0.5f, 0.5f, -0.5f,
-			- 0.5f, 0.5f, -0.5f,
+			-0.5f, 0.5f, -0.5f,
 			-0.5f, -0.5f, 0.5f,
 			0.5f, -0.5f, 0.5f,
 			0.5f, 0.5f, 0.5f,
 			-0.5f, 0.5f, 0.5f,
+			-0.5f, -0.5f, -0.5f,
+			-0.5f, -0.5f, 0.5f,
 			-0.5f, 0.5f, 0.5f,
 			-0.5f, 0.5f, -0.5f,
-			-0.5f, -0.5f, -0.5f,
-			-0.5f, -0.5f, 0.5f,
-			0.5f, 0.5f, 0.5f,
-			0.5f, 0.5f, -0.5f,
 			0.5f, -0.5f, -0.5f,
 			0.5f, -0.5f, 0.5f,
+			0.5f, 0.5f, 0.5f,
+			0.5f, 0.5f, -0.5f,
 			-0.5f, -0.5f, -0.5f,
 			0.5f, -0.5f, -0.5f,
 			0.5f, -0.5f, 0.5f,
@@ -230,10 +230,10 @@ private:
 			-0.5f, 0.5f, -0.5f,
 			0.5f, 0.5f, -0.5f,
 			0.5f, 0.5f, 0.5f,
-			-0.5f, 0.5f, 0.5f 
+			-0.5f, 0.5f, 0.5f
 		};
 
-		vector<float> vertex_normals {
+		vector<float> vertex_normals{
 			0.0f, 0.0f, -1.0f,
 			0.0f, 0.0f, -1.0f,
 			0.0f, 0.0f, -1.0f,
@@ -260,31 +260,48 @@ private:
 			0.0f, 1.0f, 0.0f
 		};
 
-		vector<float> vertex_texCoords {
-			0.0f, 0.0f,
-			1.0f, 0.0f,
-			1.0f, 1.0f,
-			0.0f, 1.0f,
-			0.0f, 0.0f,
-			1.0f, 0.0f,
-			1.0f, 1.0f,
-			0.0f, 1.0f,
-			1.0f, 0.0f,
-			1.0f, 1.0f,
-			0.0f, 1.0f,
-			0.0f, 0.0f,
-			1.0f, 0.0f,
-			1.0f, 1.0f,
-			0.0f, 1.0f,
-			0.0f, 0.0f,
-			0.0f, 1.0f,
-			1.0f, 1.0f,
+		vector<float> vertex_texCoords{
+			//0.0f, 0.0f,
+			//1.0f, 0.0f,
+			//1.0f, 1.0f,
+			//0.0f, 1.0f,
 			1.0f, 0.0f,
 			0.0f, 0.0f,
 			0.0f, 1.0f,
 			1.0f, 1.0f,
+
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			1.0f, 1.0f,
+			0.0f, 1.0f,
+
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			1.0f, 1.0f,
+			0.0f, 1.0f,
+
+			//0.0f, 0.0f,
+			//1.0f, 0.0f,
+			//1.0f, 1.0f,
+			//0.0f, 1.0f,
 			1.0f, 0.0f,
 			0.0f, 0.0f,
+			0.0f, 1.0f,
+			1.0f, 1.0f,
+
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			1.0f, 1.0f,
+			0.0f, 1.0f,
+
+			//0.0f, 0.0f,
+			//1.0f, 0.0f,
+			//1.0f, 1.0f,
+			//0.0f, 1.0f
+			0.0f, 1.0f,
+			1.0f, 1.0f,
+			1.0f, 0.0f,
+			0.0f, 0.0f
 		};
 
 		indices = {
@@ -310,5 +327,95 @@ private:
 			
 			vertices.push_back(vert);
 		} 
+		/*
+		// setup the tangent and bitangent vectors
+		for (int i = 0; i < indices.size(); i += 3) {
+			unsigned int i0 = indices[i];
+			unsigned int i1 = indices[i + 1];
+			unsigned int i2 = indices[i + 2];
+
+			glm::vec3 pos1 = vertices[i0].position;
+			glm::vec3 pos2 = vertices[i1].position;
+			glm::vec3 pos3 = vertices[i2].position;
+
+			glm::vec2 uv1 = vertices[i0].textureCoords;
+			glm::vec2 uv2 = vertices[i1].textureCoords;
+			glm::vec2 uv3 = vertices[i2].textureCoords;
+
+			glm::vec3 edge1 = pos2 - pos1;
+			glm::vec3 edge2 = pos3 - pos1;
+			glm::vec2 dUV1 = uv2 - uv1;
+			glm::vec2 dUV2 = uv3 - uv1;
+
+			float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+
+			glm::vec3 tangent;
+			tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+			tangent.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+			tangent.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+			tangent = glm::normalize(tangent);
+
+			glm::vec3 bitangent;
+			bitangent.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
+			bitangent.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
+			bitangent.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
+			bitangent = glm::normalize(bitangent);
+
+			vertices[i0].tangent += tangent;
+			vertices[i1].tangent += tangent;
+			vertices[i2].tangent += tangent;
+
+			vertices[i0].bitangent += bitangent;
+			vertices[i1].bitangent += bitangent;
+			vertices[i2].bitangent += bitangent;
+		}
+
+		for (int i = 0; i < vertices.size(); i++) {
+			glm::vec3 tangent = vertices[i].tangent;
+			glm::vec3 bitangent = vertices[i].bitangent;
+			glm::vec3 normal = vertices[i].normal;
+
+			// Gram-Schmidt orthogonalization
+			tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
+			bitangent = glm::normalize(glm::cross(normal, tangent));
+
+			vertices[i].tangent = tangent;
+			vertices[i].bitangent = bitangent;
+		}*/
+		for (int i = 0; i < indices.size(); i += 3) {
+			// Get the vertex indices of the current triangle
+			int index0 = indices[i];
+			int index1 = indices[i + 1];
+			int index2 = indices[i + 2];
+
+			// Get the vertex positions from the indices
+			glm::vec3 pos0 = vertices[index0].position;
+			glm::vec3 pos1 = vertices[index1].position;
+			glm::vec3 pos2 = vertices[index2].position;
+
+			// Calculate the edge vectors of the triangle
+			glm::vec3 edge1 = pos1 - pos0;
+			glm::vec3 edge2 = pos2 - pos0;
+
+			// Calculate the texture coordinate edges
+			glm::vec2 uv0 = vertices[index0].textureCoords;
+			glm::vec2 uv1 = vertices[index1].textureCoords;
+			glm::vec2 uv2 = vertices[index2].textureCoords;
+
+			glm::vec2 deltaUV1 = uv1 - uv0;
+			glm::vec2 deltaUV2 = uv2 - uv0;
+
+			float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+			glm::vec3 tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * r;
+			glm::vec3 bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * r;
+
+			// Store the calculated tangent and bitangent in the vertex data
+			vertices[index0].tangent = tangent;
+			vertices[index0].bitangent = bitangent;
+			vertices[index1].tangent = tangent;
+			vertices[index1].bitangent = bitangent;
+			vertices[index2].tangent = tangent;
+			vertices[index2].bitangent = bitangent;
+		}
 	}
 };

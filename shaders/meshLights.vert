@@ -3,6 +3,8 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
+layout (location = 3) in vec3 aTangent;
+layout (location = 4) in vec3 aBitangent;
 
 // structs definition
 struct DirLight {
@@ -82,17 +84,30 @@ uniform mat4 model;
 
 out vec3 Normal;
 out vec3 fragPos;
-out vec2 textureCoords;
+out vec2 TextCoords;
 out vec4 fragPosLightSpace[10];
+out vec3 tangentViewPos;
+out vec3 tangentFragPos;
+out mat3 TBN;
 
 void main()
 {
     gl_Position = proj * view * model * vec4(aPos, 1.0);
 	fragPos = vec3(model * vec4(aPos, 1.0));
 	Normal = mat3(transpose(inverse(model))) * aNormal;
-	textureCoords = aTexCoords;
+	TextCoords = aTexCoords;
 
-    for (int i = 0; i < dirLightCount && i < 5; i++)
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    vec3 T = normalize(normalMatrix * aTangent);
+    vec3 N = normalize(normalMatrix * aNormal);
+    vec3 B = normalize(normalMatrix * aBitangent);
+    
+    TBN = transpose(mat3(T, B, N));
+
+    tangentViewPos = TBN * viewPos;
+    tangentFragPos = TBN * fragPos;
+
+     for (int i = 0; i < dirLightCount && i < 5; i++)
 	{
 		fragPosLightSpace[i] = dirLight[i].lightSpaceMatrix * vec4(fragPos, 1.0);
 	}

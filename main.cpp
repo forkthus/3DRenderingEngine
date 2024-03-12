@@ -34,8 +34,8 @@ void GLAPIENTRY MessageCallback(GLenum source,
 	const GLchar* message,
 	const void* userParam);	
 
-const unsigned int WINDOW_WIDTH = 1600;
-const unsigned int WINDOW_HEIGHT = 1200;
+unsigned int WINDOW_WIDTH = 1600;
+unsigned int WINDOW_HEIGHT = 1200;
 
 // Camera properties
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -159,6 +159,8 @@ int main() {
 // whenever the window size changed, update the buffer size
 void window_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+	WINDOW_WIDTH = width;
+	WINDOW_HEIGHT = height;
 }
 
 // handle camera movement by the mouse
