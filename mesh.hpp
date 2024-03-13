@@ -327,61 +327,7 @@ private:
 			
 			vertices.push_back(vert);
 		} 
-		/*
-		// setup the tangent and bitangent vectors
-		for (int i = 0; i < indices.size(); i += 3) {
-			unsigned int i0 = indices[i];
-			unsigned int i1 = indices[i + 1];
-			unsigned int i2 = indices[i + 2];
 
-			glm::vec3 pos1 = vertices[i0].position;
-			glm::vec3 pos2 = vertices[i1].position;
-			glm::vec3 pos3 = vertices[i2].position;
-
-			glm::vec2 uv1 = vertices[i0].textureCoords;
-			glm::vec2 uv2 = vertices[i1].textureCoords;
-			glm::vec2 uv3 = vertices[i2].textureCoords;
-
-			glm::vec3 edge1 = pos2 - pos1;
-			glm::vec3 edge2 = pos3 - pos1;
-			glm::vec2 dUV1 = uv2 - uv1;
-			glm::vec2 dUV2 = uv3 - uv1;
-
-			float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
-
-			glm::vec3 tangent;
-			tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
-			tangent.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
-			tangent.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
-			tangent = glm::normalize(tangent);
-
-			glm::vec3 bitangent;
-			bitangent.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
-			bitangent.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
-			bitangent.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
-			bitangent = glm::normalize(bitangent);
-
-			vertices[i0].tangent += tangent;
-			vertices[i1].tangent += tangent;
-			vertices[i2].tangent += tangent;
-
-			vertices[i0].bitangent += bitangent;
-			vertices[i1].bitangent += bitangent;
-			vertices[i2].bitangent += bitangent;
-		}
-
-		for (int i = 0; i < vertices.size(); i++) {
-			glm::vec3 tangent = vertices[i].tangent;
-			glm::vec3 bitangent = vertices[i].bitangent;
-			glm::vec3 normal = vertices[i].normal;
-
-			// Gram-Schmidt orthogonalization
-			tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
-			bitangent = glm::normalize(glm::cross(normal, tangent));
-
-			vertices[i].tangent = tangent;
-			vertices[i].bitangent = bitangent;
-		}*/
 		for (int i = 0; i < indices.size(); i += 3) {
 			// Get the vertex indices of the current triangle
 			int index0 = indices[i];

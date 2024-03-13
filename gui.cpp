@@ -282,9 +282,6 @@ void showLightList() {
 			rs.removeLight(lID);
 		}
 
-		// List existing lights here
-		// For each light, you can display its properties and options to edit or delete the light
-
 		ImGui::End();
 	}
 	else {
@@ -401,6 +398,8 @@ void showMaterialProperties(Material& m) {
 		else {
 			ImGui::Text("Textures");
 			ImGui::DragFloat("Parallax Mapping Height Scale", &m.heightScale, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Parallax Mapping Minimum Layers", &m.minLayers, 1.0f, 1.0f, 16.0f);
+			ImGui::DragFloat("Parallax Mapping Maximum Layers", &m.maxLayers, 1.0f, 16.0f, 64.0f);
 
 			// Texture list box
 			if (ImGui::BeginListBox("##Textures")) {

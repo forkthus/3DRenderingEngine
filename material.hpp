@@ -30,6 +30,8 @@ public:
 	unsigned int shaderID;
 	queue<unsigned int> textureUnits;
 	float heightScale;
+	float minLayers;
+	float maxLayers;
 
 	// color
 	glm::vec3 ambient;
@@ -45,6 +47,8 @@ public:
 		showProperties = false;
 		shininess = 32.0f;
 		heightScale = 0.1f;
+		minLayers = 8.0f;
+		maxLayers = 32.0f;
 		name = "Material " + to_string(id);
 	}
 

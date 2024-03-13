@@ -119,11 +119,75 @@ float calcDirecShadow(uint index, float bias);
 float calcPointShadow(uint index, float bias);
 
 uniform float heightScale;
+uniform float minLayers;
+uniform float maxLayers;
 
 vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 { 
-    float height =  texture(texture_height[0], texCoords).r;     
-    return texCoords - viewDir.xy * (height * heightScale);        
+	vec2 curTexCoords = texCoords;
+	float height = texture(texture_height[0], curTexCoords).r;
+	// adjust the number of layers based on the angle of view
+	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0f, 0.0f, 1.0f), viewDir)));
+	float deltaDepth = 1.0f / numLayers;
+	float currentDepth = 0.0f;
+	vec2 P = viewDir.xy / viewDir.z * heightScale;
+	vec2 deltaP = P / numLayers;
+	
+	while (currentDepth < height) {
+		curTexCoords -= deltaP;
+		currentDepth += deltaDepth;
+		height = texture(texture_height[0], curTexCoords).r;
+	}
+
+	// interpolate the two closest depth values to get a more accurate result
+	vec2 prevTexCoords = curTexCoords + deltaP;
+	float prevDepth = texture(texture_height[0], prevTexCoords).r - (currentDepth - deltaDepth);
+	//float afterDepth = currentDepth - height;
+	float afterDepth = height - currentDepth;
+
+	//float weight = prevDepth / (prevDepth + afterDepth);
+	float weight = afterDepth / (afterDepth - prevDepth);
+
+	return prevTexCoords * weight + curTexCoords * (1.0f - weight);
+	/*
+	// number of depth layers
+    const float minLayers = 8;
+    const float maxLayers = 32;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy / viewDir.z * heightScale; 
+    vec2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    vec2  currentTexCoords     = texCoords;
+    float currentDepthMapValue = texture(texture_height[0], currentTexCoords).r;
+      
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(texture_height[0], currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;  
+    }
+    
+    // get texture coordinates before collision (reverse operations)
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(texture_height[0], prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+    return finalTexCoords;*/
 }
 
 void main() {	
