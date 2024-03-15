@@ -11,5 +11,6 @@ void showMaterialProperties(Material&);
 void showObjectProperties(Entity&);
 void showLightProperties(Light&);
 void showAddShader();
+void showAddSkybox();
 extern void showFileDialog();
 extern void showObjList();

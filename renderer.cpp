@@ -39,6 +39,10 @@ void Renderer::init() {
 	lightCubeShader = lightCube->ID;
 	unsigned int lightCubeID = lightCube->ID;
 	shaders[lightCubeID] = move(lightCube);
+	unique_ptr<Shader> skybox = make_unique<Shader>("shaders/skybox.vert", "shaders/skybox.frag");
+	skyboxShader = skybox->ID;
+	unsigned int skyboxID = skybox->ID;
+	shaders[skyboxID] = move(skybox);
 	// create a default material
 	addMaterial(true);
 	// create a default mesh for lightCube
@@ -92,6 +96,64 @@ void Renderer::init() {
 	//addLight(DIRECTIONAL);
 	//addLight(POINT);
 	//addLight(SPOT);
+
+	// setup Skybox
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	setupSkybox({ "textures/right.jpg", "textures/left.jpg", "textures/top.jpg", "textures/bottom.jpg", "textures/front.jpg", "textures/back.jpg" });
 }
 
 unsigned int Renderer::addLight(Light_Type type) {
@@ -277,6 +339,7 @@ void Renderer::render(bool lightVisible) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	renderScene(false);
+	renderSkyBox();
 
 	// draw the lights
 	Shader &lightCube = *shaders[lightCubeShader];
@@ -296,13 +359,6 @@ void Renderer::render(bool lightVisible) {
 			mesh.draw(lightCube);
 		}
 	}
-
-	// unbind the textures from all units
-	//for (auto const& [lID, l] : lights) {
-	//	glActiveTexture(GL_TEXTURE0 + l->textureUnit);
-	//	glBindTexture(l->type == POINT ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
-	//}
-	
 }
 
 void Renderer::updateShadowMaps(Shader& shader) {
@@ -378,4 +434,23 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 			}
 		}
 	}
+}
+
+void Renderer::setupSkybox(vector<string> images) {
+	skyboxTexture = make_unique<Texture>(TEXTURE_CUBE_MAP, images);
+	std::cout << "Loading finished" << std::endl;
+}
+
+void Renderer::renderSkyBox() {
+	glDepthFunc(GL_LEQUAL);
+	Shader& skybox = *shaders[skyboxShader];
+
+	skybox.use();
+	glBindVertexArray(skyboxVAO);
+	glActiveTexture(GL_TEXTURE30);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture->ID);
+	glUniform1i(glGetUniformLocation(skybox.ID, "skybox"), 30);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+	glDepthFunc(GL_LESS);
 }

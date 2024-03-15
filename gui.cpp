@@ -19,6 +19,7 @@ static bool objList = false;
 static bool matList = false;
 static bool lightList = false;
 static bool addShader = false;
+static bool addSkybox = false;
 static string objFilePath = "";
 static string vertexShaderPath = "";
 static string fragmentShaderPath = "";
@@ -28,6 +29,12 @@ static string diffuseTexturePath = "";
 static string specularTexturePath = "";
 static string normalTexturePath = "";
 static string heightTexturePath = "";
+static string rightFacePath = "";
+static string leftFacePath = "";
+static string topFacePath = "";
+static string bottomFacePath = "";
+static string frontFacePath = "";
+static string backFacePath = "";
 static string* curFilePath = &objFilePath;
 
 struct ColorOption {
@@ -83,6 +90,9 @@ void showMainMenuBar() {
 			if (ImGui::MenuItem("Load Shader..")) {
 				addShader = true;
 			}
+			if (ImGui::MenuItem("Load Cubemap..")) {
+				addSkybox = true;
+			}
 			// quit
 			if (ImGui::MenuItem("Quit")) {
 				// quit
@@ -107,6 +117,10 @@ void showMainMenuBar() {
 
 	if (addShader) {
 		showAddShader();
+	}
+
+	if (addSkybox) {
+		showAddSkybox();
 	}
 
 	if (objList) {
@@ -365,7 +379,7 @@ void showLightProperties(Light& l) {
 	}
 }
 
-// show material properties
+// show material properties	
 void showMaterialProperties(Material& m) {
 	if (ImGui::Begin(m.name.c_str())) {
 		ImGui::SeparatorText("Material Properties");
@@ -643,13 +657,79 @@ void showAddShader() {
 		ImGui::Spacing();
 
 		if (ImGui::Button("Add Shader")) {
-			rs.addShader(vertexShaderPath, fragmentShaderPath, geometryShaderPath);
-			addShader = false;
+			// check if the paths are filled
+			if (!vertexShaderPath.empty() && !fragmentShaderPath.empty()) {
+				rs.addShader(vertexShaderPath, fragmentShaderPath, geometryShaderPath);
+				addShader = false;
+
+				// clear the paths
+				vertexShaderPath.clear();
+				fragmentShaderPath.clear();
+				geometryShaderPath.clear();
+			}
 		}
 
 		// Close button for the popup
 		if (ImGui::Button("Close")) {
 			addShader = false;
+			// clear the paths
+			vertexShaderPath.clear();
+			fragmentShaderPath.clear();
+			geometryShaderPath.clear();
+		}
+
+		ImGui::End();
+	}
+}
+
+void showAddSkybox() {
+	if (ImGui::Begin("Add Skybox")) {
+		// Input boxes for each face of the cubemap
+		const string faceLabels[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
+		std::string* facePaths[] = { &rightFacePath, &leftFacePath, &topFacePath, &bottomFacePath, &frontFacePath, &backFacePath };
+
+		for (int i = 0; i < 6; i++) {
+			ImGui::Text((faceLabels[i] + " Face:").c_str());
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(150);
+			ImGui::InputText(("##" + std::string(faceLabels[i]) + "FacePath").c_str(), const_cast<char*>(facePaths[i]->c_str()), facePaths[i]->size(), ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::Button(("Add " + std::string(faceLabels[i]) + " Face").c_str())) {
+				showDialog = true;
+				fileType = ".jpg,.png,.jpeg"; // Assuming the cubemap faces are in JPG format
+				curFilePath = facePaths[i];
+			}
+
+			ImGui::Spacing();
+		}
+
+		ImGui::Spacing();
+
+		if (ImGui::Button("Add Cubemap")) {
+			bool allPathsFilled = true;
+			// check if allhe paths are filled
+			for (const string* path : facePaths) 
+				if (path->empty()) {
+					allPathsFilled = false;
+					break;
+				}
+			if (allPathsFilled) {
+				rs.setupSkybox(vector<string>{rightFacePath, leftFacePath, topFacePath, bottomFacePath, frontFacePath, backFacePath});
+				addSkybox = false;
+				// Reset the paths
+				for (string* path : facePaths) {
+					path->clear();
+				}
+			}
+		}
+
+		// Close button for the popup
+		if (ImGui::Button("Close")) {
+			addSkybox = false;
+			// Reset the paths
+			for (string* path : facePaths) {
+				path->clear();
+			}
 		}
 
 		ImGui::End();

@@ -66,12 +66,20 @@ public:
 
 	void renderScene(bool shadow, unsigned int shaderID = 0, bool lightVisible = false);
 
+	void renderSkyBox();
+
+	void setupSkybox(vector<string> images);
+
 private:
 	unsigned int defaultShader;
 	unsigned int depthShader;
 	unsigned int depthPointShader;
 	unsigned int lightCubeShader;
 	unsigned int lightCubeMeshID;
+	unsigned int skyboxShader;
+	unsigned int skyboxVAO;
+	unsigned int skyboxVBO;
+	unique_ptr<Texture> skyboxTexture;
 	ID entityID;
 	ID materialID;
 	ID meshID;

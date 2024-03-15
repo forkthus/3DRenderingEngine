@@ -19,6 +19,9 @@ string directory;
 unordered_map<string, Texture> textureMap;
 
 void loadModel(string const& path, vector<Component>& comps) {
+	// tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+	stbi_set_flip_vertically_on_load(true);
+
 	std::cout << "Begin Loading..." << std::endl;
 	// initialization
 	directory.clear();
@@ -37,6 +40,8 @@ void loadModel(string const& path, vector<Component>& comps) {
 	// process Assimp's root node recursively
 	std::cout << "Processing Node..." << std::endl;
 	processNode(scene->mRootNode, scene, comps);
+
+	stbi_set_flip_vertically_on_load(false);
 }
 
 // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).

@@ -67,20 +67,19 @@ void Material::setupUniforms(Shader& shader) {
 			
 			textureUnits.push(offset + i);
 		}
-
-		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int)	* 0, sizeof(unsigned int), &diffuseCount);
-		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int)	* 1, sizeof(unsigned int), &specularCount);
-		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 2, sizeof(unsigned int), &normalCount);
-		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 3, sizeof(unsigned int), &heightCount);
-		glUniform1f(glGetUniformLocation(shader.ID, string("heightScale").c_str()), heightScale);
-		glUniform1f(glGetUniformLocation(shader.ID, string("minLayers").c_str()), minLayers);
-		glUniform1f(glGetUniformLocation(shader.ID, string("maxLayers").c_str()), maxLayers);
 	}
 	else {
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 1, sizeof(glm::vec3), glm::value_ptr(ambient));
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 2, sizeof(glm::vec3), glm::value_ptr(diffuse));
 		glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 3, sizeof(glm::vec3), glm::value_ptr(specular));
 	}
+	glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 0, sizeof(unsigned int), &diffuseCount);
+	glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 1, sizeof(unsigned int), &specularCount);
+	glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 2, sizeof(unsigned int), &normalCount);
+	glBufferSubData(GL_UNIFORM_BUFFER, VEC4_SIZE * 4 + sizeof(unsigned int) * 3, sizeof(unsigned int), &heightCount);
+	glUniform1f(glGetUniformLocation(shader.ID, string("heightScale").c_str()), heightScale);
+	glUniform1f(glGetUniformLocation(shader.ID, string("minLayers").c_str()), minLayers);
+	glUniform1f(glGetUniformLocation(shader.ID, string("maxLayers").c_str()), maxLayers);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	//glActiveTexture(GL_TEXTURE0);
 }

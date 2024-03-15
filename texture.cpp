@@ -47,3 +47,38 @@ Texture::Texture(Texture_Type tType, string tPath, string tName) : name(tName), 
 		name = name.substr(lastSlashPos + 1);
 	}
 }
+
+Texture::Texture(Texture_Type tType, vector<string> paths, string tName) : name(tName), type(tType) {
+	glGenTextures(1, &ID);
+	glActiveTexture(GL_TEXTURE30);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
+
+	int width, height, nrChannels;
+
+	for (unsigned int i = 0; i < paths.size(); i++) {
+		unsigned char* data = stbi_load(paths[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else {
+			std::cout << "Skybox textures failed to load at path: " << paths[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	size_t lastSlashPos = name.find_last_of("/\\");
+	if (lastSlashPos != std::string::npos) {
+		// Extract the file name
+		name = name.substr(lastSlashPos + 1);
+	}
+}
+
+Texture::~Texture() {
+	glDeleteTextures(1, &ID);
+}

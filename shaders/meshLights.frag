@@ -149,45 +149,6 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 	float weight = afterDepth / (afterDepth - prevDepth);
 
 	return prevTexCoords * weight + curTexCoords * (1.0f - weight);
-	/*
-	// number of depth layers
-    const float minLayers = 8;
-    const float maxLayers = 32;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-    // calculate the size of each layer
-    float layerDepth = 1.0 / numLayers;
-    // depth of current layer
-    float currentLayerDepth = 0.0;
-    // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = viewDir.xy / viewDir.z * heightScale; 
-    vec2 deltaTexCoords = P / numLayers;
-  
-    // get initial values
-    vec2  currentTexCoords     = texCoords;
-    float currentDepthMapValue = texture(texture_height[0], currentTexCoords).r;
-      
-    while(currentLayerDepth < currentDepthMapValue)
-    {
-        // shift texture coordinates along direction of P
-        currentTexCoords -= deltaTexCoords;
-        // get depthmap value at current texture coordinates
-        currentDepthMapValue = texture(texture_height[0], currentTexCoords).r;  
-        // get depth of next layer
-        currentLayerDepth += layerDepth;  
-    }
-    
-    // get texture coordinates before collision (reverse operations)
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-
-    // get depth after and before collision for linear interpolation
-    float afterDepth  = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = texture(texture_height[0], prevTexCoords).r - currentLayerDepth + layerDepth;
- 
-    // interpolation of texture coordinates
-    float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
-
-    return finalTexCoords;*/
 }
 
 void main() {	
@@ -235,7 +196,7 @@ void main() {
 
 vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {
 	//vec4 fragPosLightSpace = light.lightSpaceMatrix * vec4(fragPos, 1.0);
-	vec3 lightDir = normalize(TBN * (-light.direction));
+	vec3 lightDir = (normalCount == 0) ? normalize(-light.direction) : normalize(TBN * (-light.direction));
 	// vec3 norm = normalize(Normal);
 
 	// ambient light
@@ -246,7 +207,7 @@ vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {
 	vec3 diffuse;
 
 	// specular light
-	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
+	vec3 viewDir = (normalCount == 0) ? normalize(viewPos - fragPos) : normalize(tangentViewPos - tangentFragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	// phong
@@ -277,7 +238,7 @@ vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {
 }
 
 vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec2 textureCoords) {
-	vec3 lightDir = normalize(TBN * light.position - tangentFragPos);
+	vec3 lightDir = (normalCount == 0) ? normalize(light.position - fragPos) : normalize(TBN * light.position - tangentFragPos);
 	float dist = length(light.position - fragPos);
 	float attenuation = 1.0f / (light.constant + pow(light.linear * dist, 2.2) + pow(light.quadratic * dist * dist, 2.2));
 	// vec3 norm = normalize(Normal);
@@ -291,7 +252,7 @@ vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec2 textureCoords)
 	vec3 diffuse;
 
 	// specular light
-	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
+	vec3 viewDir = (normalCount == 0) ? normalize(viewPos - fragPos) : normalize(tangentViewPos - tangentFragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	// float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
@@ -313,14 +274,14 @@ vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec2 textureCoords)
 		}
 	}
 
-	float shadow = calcPointShadow(index, 0.05);
+	float shadow = calcPointShadow(index, 0.005);
 
 	return (ambient + (1.0 - shadow) * (diffuse + specular)) * attenuation;
 }
 
 vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec2 textureCoords) {
 	// Spot light
-	vec3 lightDir = normalize(TBN * light.position - tangentFragPos); 
+	vec3 lightDir = (normalCount == 0) ? normalize(light.position - fragPos) : normalize(TBN * light.position - tangentFragPos);
 	float theta = dot(-lightDir, light.direction);
 	float epsilon = light.cutOff - light.outerCutOff;
 	float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
@@ -334,7 +295,7 @@ vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec2 textureCoords) {
 	vec3 diffuse;
 
 	// specular light
-	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
+	vec3 viewDir = (normalCount == 0) ? normalize(viewPos - fragPos) : normalize(tangentViewPos - tangentFragPos);
 	vec3 reflectDir = normalize(reflect(-lightDir, norm));
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	// float specularVar = pow(max(dot(viewDir, reflectDir), 0.0), shininess);

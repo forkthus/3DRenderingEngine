@@ -99,9 +99,7 @@ int main() {
 	glEnable(GL_CULL_FACE);
 
 	glDebugMessageCallback(MessageCallback, 0);
-	// tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-	stbi_set_flip_vertically_on_load(true);
-
+	
 	// setup Dear ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
