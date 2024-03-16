@@ -23,26 +23,24 @@ void Renderer::init() {
 	// std::cout << "Creating Directional Shadow depth shader..." << std::endl;
 	unique_ptr<Shader> depth = make_unique<Shader>("shaders/depthShader.vert", "shaders/depthShader.frag");
 	depthShader = depth->ID;
-	unsigned int depthShaderID = depth->ID;
-	shaders[depthShaderID] = move(depth);
+	shaders[depthShader] = move(depth);
 	// std::cout << "Creating Point Shadow depth shader..." << std::endl;
 	unique_ptr<Shader> point = make_unique<Shader>("shaders/depthPointShader.vert", "shaders/depthPointShader.frag", "shaders/depthPointShader.geom");
 	depthPointShader = point->ID;
-	unsigned int pointShaderID = point->ID;
-	shaders[pointShaderID] = move(point);
+	shaders[depthPointShader] = move(point);
 	// std::cout << "Creating light shader..." << std::endl;
 	unique_ptr<Shader> lightShader = make_unique<Shader>("shaders/meshLights.vert", "shaders/meshLights.frag");
 	defaultShader = lightShader->ID;
-	unsigned int lightShaderID = lightShader->ID;
-	shaders[lightShaderID] = move(lightShader);
+	shaders[defaultShader] = move(lightShader);
 	unique_ptr<Shader> lightCube = make_unique<Shader>("shaders/lightCube.vert", "shaders/lightCube.frag");
 	lightCubeShader = lightCube->ID;
-	unsigned int lightCubeID = lightCube->ID;
-	shaders[lightCubeID] = move(lightCube);
+	shaders[lightCubeShader] = move(lightCube);
 	unique_ptr<Shader> skybox = make_unique<Shader>("shaders/skybox.vert", "shaders/skybox.frag");
 	skyboxShader = skybox->ID;
-	unsigned int skyboxID = skybox->ID;
-	shaders[skyboxID] = move(skybox);
+	shaders[skyboxShader] = move(skybox);
+	unique_ptr<Shader> hightlight = make_unique<Shader>("shaders/highlight.vert", "shaders/highlight.frag");
+	highlightShader = hightlight->ID;
+	shaders[highlightShader] = move(hightlight);
 	// create a default material
 	addMaterial(true);
 	// create a default mesh for lightCube
@@ -336,9 +334,11 @@ void Renderer::render(bool lightVisible) {
 
 	// render the scene
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	renderScene(false);
+
+	// glEnable(GL_DEPTH_TEST);
 	renderSkyBox();
 
 	// draw the lights
@@ -346,7 +346,6 @@ void Renderer::render(bool lightVisible) {
 	for (auto const& [lID, l] : lights) {
 		if (l->type != DIRECTIONAL && l->visible) {
 			// create a unit cube to represent the light
-		
 			glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
 			glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(l->position));
 			glm::mat4 model = translate * scale;
@@ -404,6 +403,7 @@ void Renderer::updateShadowMaps(Shader& shader) {
 }
 
 void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible) {
+	Shader& highlight = *shaders[highlightShader];
 	for (auto const& [eID, e] : entities) {
 		if (e->render) {
 			glm::mat4 eModel = getModelMatrix(*e);
@@ -416,7 +416,10 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 				if (!shadow) {
 					mat.setupUniforms(shader);
 					updateShadowMaps(shader);
-					
+					if (e->showProperties) {
+						glStencilFunc(GL_ALWAYS, 1, 0xFF);
+						glStencilMask(0xFF);
+					}
 				}
 
 				shader.use();
@@ -429,8 +432,18 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 				glUniformMatrix4fv(glGetUniformLocation(shader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 				mesh.draw(shader);
 
-				//if (!shadow)
-				//	mat.unbindTextures();
+				if (!shadow && e->showProperties) {
+					glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+					glStencilMask(0x00);
+					glUseProgram(highlight.ID);
+					glUniformMatrix4fv(glGetUniformLocation(highlight.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+					// glDisable(GL_DEPTH_TEST);
+					mesh.draw(highlight);
+					// glEnable(GL_DEPTH_TEST);
+					glStencilFunc(GL_ALWAYS, 1, 0xFF);
+					glStencilMask(0xFF);
+					glClear(GL_STENCIL_BUFFER_BIT);
+				}
 			}
 		}
 	}
@@ -453,4 +466,23 @@ void Renderer::renderSkyBox() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
 	glDepthFunc(GL_LESS);
+}
+
+void Renderer::renderHightlightObjs() {
+	Shader& shader = *shaders[highlightShader];
+
+	for (auto const& [eID, e] : entities) {
+		glm::mat4 eModel = getModelMatrix(*e);
+		if (e-> render && e->showProperties) {
+			for (auto& comp : e->components) {
+				glm::mat4 cModel = getModelMatrix(comp);
+				glm::mat4 model = eModel * cModel;
+				glUseProgram(shader.ID);
+				glUniformMatrix4fv(glGetUniformLocation(shader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+				meshes[comp.meshID]->draw(shader);
+				std::cout << "Finished Drawing" << std::endl;
+			}
+			
+		}
+	}
 }

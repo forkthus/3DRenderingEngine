@@ -70,6 +70,8 @@ public:
 
 	void setupSkybox(vector<string> images);
 
+	void renderHightlightObjs();
+
 private:
 	unsigned int defaultShader;
 	unsigned int depthShader;
@@ -80,6 +82,7 @@ private:
 	unsigned int skyboxVAO;
 	unsigned int skyboxVBO;
 	unique_ptr<Texture> skyboxTexture;
+	unsigned int highlightShader;
 	ID entityID;
 	ID materialID;
 	ID meshID;

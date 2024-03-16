@@ -97,6 +97,9 @@ int main() {
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // Makes debugging synchronous
 	glEnable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 	glDebugMessageCallback(MessageCallback, 0);
 	
