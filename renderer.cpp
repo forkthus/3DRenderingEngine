@@ -151,7 +151,9 @@ void Renderer::init() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	setupSkybox({ "textures/right.jpg", "textures/left.jpg", "textures/top.jpg", "textures/bottom.jpg", "textures/front.jpg", "textures/back.jpg" });
+	//setupSkybox({ "textures/right.jpg", "textures/left.jpg", "textures/top.jpg", "textures/bottom.jpg", "textures/front.jpg", "textures/back.jpg" });
+	//setupSkybox({ "textures/tf_right.png", "textures/tf_left.png", "textures/tf_top.png", "textures/tf_bottom.png", "textures/tf_front.png", "textures/tf_back.png" });
+	setupSkybox({ "textures/bluecloud_rt.jpg", "textures/bluecloud_lf.jpg", "textures/bluecloud_up.jpg", "textures/bluecloud_dn.jpg", "textures/bluecloud_ft.jpg", "textures/bluecloud_bk.jpg" });
 }
 
 unsigned int Renderer::addLight(Light_Type type) {
