@@ -10,8 +10,8 @@ Phasically Based Rendering (In Progress)
 
 # Screenshots
 ![container](screenshots/container.PNG)
-![terrain](screenshots/terrrain1.PNG)
-![terrain](screenshots/terrain2.PNG)
+![terrain](screenshots/terrain0.PNG)
+![terrain](screenshots/terrain1.PNG)
 
 # Dependencies
 Dear ImGui  
