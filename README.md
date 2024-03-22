@@ -3,15 +3,15 @@ A powerful and feature-rich 3D rendering engine built using C++ and OpenGL. This
 You can use GUI to easily manage the objects in the scene.
 
 # Features
-Directional Light, Spot Light, and point Light shadows 
-Normal/Parallax mapping 
-Model loading 
-Phasically Based Rendering (In Progress) 
+Directional Light, Spot Light, and point Light shadows  
+Normal/Parallax mapping  
+Model loading  
+Phasically Based Rendering (In Progress)  
 
 # Screenshots
-![container](images/container.png)
-![terrain](images/terrrain1.png)
-![terrain](images/terrain2.png)
+![container](screenshots/container.png)
+![terrain](screenshots/terrrain1.png)
+![terrain](screenshots/terrain2.png)
 
 # Dependencies
 Dear ImGui  
