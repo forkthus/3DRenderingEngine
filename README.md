@@ -9,9 +9,9 @@ Model loading
 Phasically Based Rendering (In Progress)  
 
 # Screenshots
-![container](screenshots/container.png)
-![terrain](screenshots/terrrain1.png)
-![terrain](screenshots/terrain2.png)
+![container](screenshots/container.PNG)
+![terrain](screenshots/terrrain1.PNG)
+![terrain](screenshots/terrain2.PNG)
 
 # Dependencies
 Dear ImGui  
