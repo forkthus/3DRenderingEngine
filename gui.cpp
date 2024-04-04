@@ -73,6 +73,8 @@ std::vector<ColorOption> colorOptions = {
 	{"yellow rubber", {0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, .078125f}
 };
 
+double lastTime = glfwGetTime();
+
 // Main Menu
 void showMainMenuBar() {
 	if (ImGui::Begin("Current Position")) {
@@ -81,6 +83,16 @@ void showMainMenuBar() {
 		ImGui::Text("Z: %f", camera.pos.z);
 		ImGui::End();
 	}
+
+	if (ImGui::Begin("Performance")) {
+		double curTime = glfwGetTime();
+		double timeElapased = curTime - lastTime;
+		lastTime = curTime;
+		ImGui::Text("Latency: %lfms", timeElapased * 1000.0);
+		ImGui::Text("FPS: %lffps", 1.0 / timeElapased);
+		ImGui::End();
+	}
+
 	if (showDialog) {
 		openFileDialog();
 		return;
