@@ -337,11 +337,13 @@ void Renderer::render(bool lightVisible) {
 	// render the scene
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
+	glDepthMask(GL_FALSE);
+	renderSkyBox();
+	glDepthMask(GL_TRUE);
 	renderScene(false);
 
 	// glEnable(GL_DEPTH_TEST);
-	renderSkyBox();
+	//renderSkyBox();
 
 	// draw the lights
 	Shader &lightCube = *shaders[lightCubeShader];

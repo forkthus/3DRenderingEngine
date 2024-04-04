@@ -20,7 +20,7 @@ void Material::setupUniforms(Shader& shader) {
 	unsigned int normalCount = 0;
 	unsigned int heightCount = 0;
 
-	unsigned int offset = 20;
+	unsigned int offset = 10;
 
 	shader.use();
 	glBindBuffer(GL_UNIFORM_BUFFER, UBO);
@@ -62,10 +62,11 @@ void Material::setupUniforms(Shader& shader) {
 			// std::cout << "Binding " << typeName << "[" << to_string(num) << "] to texture " << i << std::endl;
 			glActiveTexture(GL_TEXTURE0 + offset + i);
 			glUniform1i(glGetUniformLocation(shader.ID, (typeName + "[" + to_string(num) + "]").c_str()), offset + i);
-			// std::cout << "Binding " << typeName << "[" << to_string(num) << "] to texture " << i << std::endl;
+			//std::cout << "Binding " << typeName << "[" << to_string(num) << "] to texture " << i << std::endl;
+			//std::cout << "Texture ID is " << textures[i].ID << std::endl;
 			glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 			
-			textureUnits.push(offset + i);
+			//textureUnits.push(offset + i);
 		}
 	}
 	else {
@@ -88,12 +89,12 @@ void Material::addTexture(Texture_Type type, string& path) {
 	textures.emplace_back(type, path, path);
 }
 
-void Material::unbindTextures() {
-	if (isColor)	return;
-	while (!textureUnits.empty()) {
-		glActiveTexture(GL_TEXTURE10 + textureUnits.front());
-		glBindTexture(GL_TEXTURE_2D, 0);
-		textureUnits.pop();
-	}
-
-}
+//void Material::unbindTextures() {
+//	if (isColor)	return;
+//	while (!textureUnits.empty()) {
+//		glActiveTexture(GL_TEXTURE10 + textureUnits.front());
+//		glBindTexture(GL_TEXTURE_2D, 0);
+//		textureUnits.pop();
+//	}
+//
+//}

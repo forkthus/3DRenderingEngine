@@ -1,6 +1,6 @@
 #version 430 core
 #define MAX_NUM_LIGHTS 128
-#define MAX_NUM_TEXTURES 10
+#define MAX_NUM_TEXTURES 3
 
 // structs definition
 struct DirLight {
@@ -189,9 +189,16 @@ void main() {
 		spot += calcSpotLight(spotLight[i], i, norm, texCoords);
 	}
 	
-	fragColor = vec4(dir + point + spot, 1.0f);
+	float a = diffuseCount > 0 ? texture(texture_diffuse[0], TextCoords).a : 1.0f;
+	
+	fragColor = vec4(dir + point + spot, a);
 	float gamma = 2.2;
 	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
+	
+//	if (diffuseCount > 0)
+//		fragColor = vec4(1.0, 0.0, 0.0, 0.1);
+//	else
+//		fragColor = vec4(dir + point + spot, a);
 }
 
 vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {

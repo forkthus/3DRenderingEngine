@@ -175,7 +175,7 @@ void showObjList() {
 			if (ImGui::MenuItem("Model")) {
 				showDialog = true;
 				curFilePath = &objFilePath;
-				fileType = ".obj,.fbx";
+				fileType = ".obj,.fbx,.gltf";
 			}
 			ImGui::EndPopup();
 		}
@@ -435,9 +435,10 @@ void showMaterialProperties(Material& m) {
 
 					// Button to delete this texture
 					if (ImGui::Button(("Delete##" + m.textures[i].path).c_str())) {
+						glDeleteTextures(1, &m.textures[i].ID);
 						m.textures.erase(m.textures.begin() + i);
 						ImGui::PopID();
-						break; // Break to avoid continuing with an invalidated iterator
+						break; 
 					}
 
 					ImGui::PopID();

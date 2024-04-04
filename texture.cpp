@@ -10,8 +10,10 @@ using std::string;
 Texture::Texture(Texture_Type tType, string tPath, string tName) : name(tName), path(tPath), type(tType) {
 	// load image
 	int width, height, nrComponents;
-	glActiveTexture(GL_TEXTURE31);
 	glGenTextures(1, &ID);
+	//std::cout << "texture ID: " << ID << "\n";
+	glActiveTexture(GL_TEXTURE31);
+	glBindTexture(GL_TEXTURE_2D, ID);
 
 	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
 	//std::cout << "texture path: " << path << "\n";
@@ -24,9 +26,8 @@ Texture::Texture(Texture_Type tType, string tPath, string tName) : name(tName), 
 			format = GL_RGB;
 		else if (nrComponents == 4)
 			format = GL_RGBA;
-
-		glBindTexture(GL_TEXTURE_2D, ID);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -86,6 +87,7 @@ Texture::Texture(Texture_Type tType, vector<string> paths, string tName) : name(
 	}
 }
 
-Texture::~Texture() {
-	glDeleteTextures(1, &ID);
-}
+//Texture::~Texture() {
+//	std::cout << "deleting texture: " << ID << "\n";
+//	//glDeleteTextures(1, &ID);
+//}

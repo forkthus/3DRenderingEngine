@@ -39,33 +39,36 @@ void loadModel(string const& path, vector<Component>& comps) {
 	directory = path.substr(0, path.find_last_of('/\\'));
 	// process Assimp's root node recursively
 	std::cout << "Processing Node..." << std::endl;
-	processNode(scene->mRootNode, scene, comps);
+	processNode(scene->mRootNode, scene, comps, glm::mat4(1.0f));
 
 	stbi_set_flip_vertically_on_load(false);
 }
 
 // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-void processNode(aiNode* node, const aiScene* scene, vector<Component>& comps)
+void processNode(aiNode* node, const aiScene* scene, vector<Component>& comps, const glm::mat4& parentMatTransform)
 {
+	glm::mat4 nodeTransform = glm::transpose(glm::make_mat4(&node->mTransformation.a1));
+	glm::mat4 curTransform = parentMatTransform * nodeTransform;
+
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		// the node object only contains indices to index the actual objects in the scene. 
 		// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		auto ids = processMesh(mesh, scene);
+		auto ids = processMesh(mesh, scene, curTransform);
 		comps.emplace_back(ids.first, ids.second);
 	}
 	// std::cout << "Mesh processing finished" << std::endl;
 	// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		processNode(node->mChildren[i], scene, comps);
+		processNode(node->mChildren[i], scene, comps, curTransform);
 	}
 	// std::cout << "Process child nodes" << std::endl;
 }
 
-pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene) {
+pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& transform) {
 	std::cout << "Processing Mesh..." << std::endl;
 	// data to fill
 	vector<Vertex> vertices;
@@ -75,20 +78,24 @@ pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene)
 	// walk through each of the mesh's vertices
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 		Vertex vertex;
-		glm::vec3 vect;
+		glm::vec4 vect;
 
 		// positions
 		vect.x = mesh->mVertices[i].x;
 		vect.y = mesh->mVertices[i].y;
 		vect.z = mesh->mVertices[i].z;
-		vertex.position = vect;
+		vect.w = 1;
+		vect = transform * vect;
+		vertex.position = glm::vec3(vect.x, vect.y, vect.z);
 
 		// normals
 		if (mesh->HasNormals()) {
 			vect.x = mesh->mNormals[i].x;
 			vect.y = mesh->mNormals[i].y;
 			vect.z = mesh->mNormals[i].z;
-			vertex.normal = vect;
+			vect.w = 0;
+			vect = transform * vect;
+			vertex.normal = glm::normalize(glm::vec3(vect.x, vect.y, vect.z));
 		}
 
 		// tangents
@@ -153,10 +160,10 @@ pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene)
 	vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 	// 3. normal maps
-	std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_NORMAL);
+	std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, TEXTURE_NORMAL);
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	// 4. height maps
-	std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, TEXTURE_HEIGHT);
+	std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_HEIGHT);
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 	std::cout << "Textures processed" << std::endl;
 	unsigned int meshID = rs.addMesh(OTHER, vertices, indices);

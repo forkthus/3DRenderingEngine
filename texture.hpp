@@ -26,5 +26,5 @@ public:
 
 	Texture(Texture_Type, vector<string> tPaths, string tName="");
 
-	~Texture();
+	//~Texture();
 };

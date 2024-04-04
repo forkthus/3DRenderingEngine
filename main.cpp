@@ -100,6 +100,8 @@ int main() {
 	glDepthFunc(GL_LESS);
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDebugMessageCallback(MessageCallback, 0);
 	
@@ -192,6 +194,9 @@ void cursor_callback(GLFWwindow* window, double curxPos, double curyPos) {
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse)
+		return;
 	camera.updateZoom((float)yoffset);
 }
 

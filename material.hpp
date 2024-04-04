@@ -28,7 +28,7 @@ public:
 	// textures
 	vector<Texture> textures;
 	unsigned int shaderID;
-	queue<unsigned int> textureUnits;
+	//queue<unsigned int> textureUnits;
 	float heightScale;
 	float minLayers;
 	float maxLayers;
@@ -59,7 +59,7 @@ public:
 
 	void addTexture(Texture_Type, string&);
 
-	void unbindTextures();
+	// unbindTextures();
 	
 private:
 	static unsigned int UBO;
