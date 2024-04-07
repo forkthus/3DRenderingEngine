@@ -449,7 +449,6 @@ void Renderer::render(bool lightVisible) {
 		glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
 	}
 	else {
 		// forward rendering
@@ -575,6 +574,8 @@ void Renderer::renderSkyBox() {
 
 void Renderer::renderHighlightObjs() {
 	Shader& shader = *shaders[highlightShader];
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+	glStencilMask(0x00);
 
 	for (auto const& [eID, e] : entities) {
 		glm::mat4 eModel = getModelMatrix(*e);
@@ -583,20 +584,16 @@ void Renderer::renderHighlightObjs() {
 				glm::mat4 cModel = getModelMatrix(comp);
 
 				glm::mat4 model = eModel * cModel;
-					glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-					glStencilMask(0x00);
-					glUseProgram(highlightShader);
-					glUniformMatrix4fv(glGetUniformLocation(highlightShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-					// glDisable(GL_DEPTH_TEST);
-					(meshes[comp.meshID])->draw(*shaders[highlightShader]);
-					// glEnable(GL_DEPTH_TEST);
-					glStencilFunc(GL_ALWAYS, 1, 0xFF);
-					glStencilMask(0xFF);
-					glClear(GL_STENCIL_BUFFER_BIT);
+				glUseProgram(highlightShader);
+				glUniformMatrix4fv(glGetUniformLocation(highlightShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+				(meshes[comp.meshID])->draw(*shaders[highlightShader]);
 			}
 			
 		}
 	}
+	glStencilFunc(GL_ALWAYS, 1, 0xFF);
+	glStencilMask(0xFF);
+	glClear(GL_STENCIL_BUFFER_BIT);
 }
 
 void Renderer::renderQuad() {
