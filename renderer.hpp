@@ -70,7 +70,9 @@ public:
 
 	void setupSkybox(vector<string> images);
 
-	void renderHightlightObjs();
+	void renderHighlightObjs();
+
+	void renderQuad();
 
 private:
 	unsigned int defaultShader;
@@ -81,6 +83,16 @@ private:
 	unsigned int skyboxShader;
 	unsigned int skyboxVAO;
 	unsigned int skyboxVBO;
+	unsigned int gBuffer;
+	unsigned int renderDepthBuffer;
+	unsigned int renderStencilBuffer;
+	unsigned int gPosition;
+	unsigned int gNormal;
+	unsigned int gAlbedoSpec;
+	unsigned int geometryPassShader;
+	unsigned int lightingPassShader;
+	unsigned int quadVAO;
+	unsigned int quadVBO;
 	unique_ptr<Texture> skyboxTexture;
 	unsigned int highlightShader;
 	ID entityID;

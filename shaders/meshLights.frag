@@ -1,6 +1,6 @@
 #version 430 core
 #define MAX_NUM_LIGHTS 128
-#define MAX_NUM_TEXTURES 3
+#define MAX_NUM_TEXTURES 5
 
 // structs definition
 struct DirLight {
@@ -142,10 +142,9 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 	// interpolate the two closest depth values to get a more accurate result
 	vec2 prevTexCoords = curTexCoords + deltaP;
 	float prevDepth = texture(texture_height[0], prevTexCoords).r - (currentDepth - deltaDepth);
-	//float afterDepth = currentDepth - height;
+
 	float afterDepth = height - currentDepth;
 
-	//float weight = prevDepth / (prevDepth + afterDepth);
 	float weight = afterDepth / (afterDepth - prevDepth);
 
 	return prevTexCoords * weight + curTexCoords * (1.0f - weight);
@@ -183,7 +182,7 @@ void main() {
 		point += calcPointLight(pointLight[i], i, norm, texCoords);
 	}
 
-	// get Spot light/*
+	// get Spot light
 	vec3 spot = vec3(0.0f);
 	for(uint i = 0; i < spotLightCount; i++) {
 		spot += calcSpotLight(spotLight[i], i, norm, texCoords);
@@ -194,11 +193,6 @@ void main() {
 	fragColor = vec4(dir + point + spot, a);
 	float gamma = 2.2;
 	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
-	
-//	if (diffuseCount > 0)
-//		fragColor = vec4(1.0, 0.0, 0.0, 0.1);
-//	else
-//		fragColor = vec4(dir + point + spot, a);
 }
 
 vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {
@@ -333,7 +327,7 @@ vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec2 textureCoords) {
 float calcDirecShadow(uint index, float bias) {
 	vec3 projCoords = fragPosLightSpace[index].xyz / fragPosLightSpace[index].w;
 	projCoords = projCoords * 0.5 + 0.5;
-//	float closestDepth = texture(shadowMap[index], projCoords.xy).r;
+
 	float currentDepth = projCoords.z;
 	float shadow = 0.0;
 

@@ -85,7 +85,6 @@ uniform mat4 model;
 out vec3 Normal;
 out vec3 fragPos;
 out vec2 TextCoords;
-out vec4 fragPosLightSpace[10];
 out vec3 tangentViewPos;
 out vec3 tangentFragPos;
 out mat3 TBN;
@@ -94,25 +93,19 @@ void main()
 {
     gl_Position = proj * view * model * vec4(aPos, 1.0);
 	fragPos = vec3(model * vec4(aPos, 1.0));
-	Normal = mat3(transpose(inverse(model))) * aNormal;
+	Normal = transpose(inverse(mat3(model))) * aNormal;
 	TextCoords = aTexCoords;
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vec3 T = normalize(normalMatrix * aTangent);
     vec3 N = normalize(normalMatrix * aNormal);
     vec3 B = normalize(normalMatrix * aBitangent);
-    
+
     TBN = transpose(mat3(T, B, N));
 
     tangentViewPos = TBN * viewPos;
     tangentFragPos = TBN * fragPos;
-
-    for (int i = 0; i < dirLightCount && i < 5; i++)
-	{
-		fragPosLightSpace[i] = dirLight[i].lightSpaceMatrix * vec4(fragPos, 1.0);
-	}
-    for (int i = 0; i < spotLightCount && i < 5; i++)
-    {
-        fragPosLightSpace[i + 5] = spotLight[i].lightSpaceMatrix * vec4(fragPos, 1.0);
-	}
+    
+    // from tangent space to world space
+    TBN = mat3(T, B, N);
 }
