@@ -169,6 +169,7 @@ pair<unsigned int, unsigned int> processMesh(aiMesh* mesh, const aiScene* scene,
 	unsigned int meshID = rs.addMesh(OTHER, vertices, indices);
 	std::cout << "Mesh ID: " << meshID << std::endl;
 	unsigned int matID = rs.addMaterial(false, textures);
+	rs.materials[matID]->inUse++;
 	return make_pair(meshID, matID);
 }
 

@@ -223,7 +223,12 @@ void showMaterialList() {
 			ImGui::SameLine();
 
 			if (ImGui::Button(("Delete##" + m->name).c_str())) {
-				toDelete.push_back(mID);
+				if (m->inUse != 0) {
+					std::cout << "Material is in use, cannot delete" << std::endl;
+				} 				
+				else {
+					toDelete.push_back(mID);
+				}
 			}
 
 			if (m->showProperties) {
@@ -577,7 +582,9 @@ void showObjectProperties(Entity& e) {
 			if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
 				for (auto const& [matID, mat] : rs.materials) {
 					if (ImGui::Selectable(mat->name.c_str(), matID == c.matID)) {
-						c.matID = matID;
+						rs.materials[c.matID]->inUse--;
+						c.matID = matID; 
+						rs.materials[matID]->inUse++;
 					}
 				}
 				ImGui::EndListBox();

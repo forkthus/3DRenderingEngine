@@ -47,6 +47,7 @@ public:
     unsigned int ID;
     string name;
 	vector<Component> components;
+	bool isModel;
 
 	// transform
 	glm::vec3 pos;
@@ -69,6 +70,7 @@ public:
 		localOrientation = glm::quat(1, 0, 0, 0);
 		render = true;
 		selectedComponent = &components[0];
+		isModel = false;
 
 		name = "Entity " + std::to_string(ID);
 	}

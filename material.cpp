@@ -88,13 +88,3 @@ void Material::setupUniforms(Shader& shader) {
 void Material::addTexture(Texture_Type type, string& path) {
 	textures.emplace_back(type, path, path);
 }
-
-//void Material::unbindTextures() {
-//	if (isColor)	return;
-//	while (!textureUnits.empty()) {
-//		glActiveTexture(GL_TEXTURE10 + textureUnits.front());
-//		glBindTexture(GL_TEXTURE_2D, 0);
-//		textureUnits.pop();
-//	}
-//
-//}

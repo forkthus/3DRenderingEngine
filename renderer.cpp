@@ -132,17 +132,11 @@ void Renderer::init() {
 	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 	glDrawBuffers(3, attachments);
 
-	// setup depth buffer for framebuffer
+	// setup depth and stencil buffer for framebuffer
 	glGenRenderbuffers(1, &renderDepthBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, renderDepthBuffer);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderDepthBuffer);
-	
-	// setup stencil buffer for framebuffer
-	//glGenRenderbuffers(1, &renderStencilBuffer);
-	//glBindRenderbuffer(GL_RENDERBUFFER, renderStencilBuffer);
-	//glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX, WINDOW_WIDTH, WINDOW_HEIGHT);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderStencilBuffer);
 	
 	// check the completeness of framebuffer
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -273,11 +267,18 @@ unsigned int Renderer::addEntity(unsigned int meshID, unsigned int matID) {
 unsigned int Renderer::addEntity(Mesh_Type mType, const string& path) {
 	unsigned int newID = entityID.getID();
 	vector<Component> comps;
-	if (mType == OTHER)
+	bool isModel = false;
+	if (mType == OTHER) {
 		loadModel(path, comps);
-	else
+		isModel = true;
+
+	}
+	else {
 		comps.emplace_back(addMesh(mType), 0);
+		materials[0]->inUse++;
+	}
 	entities[newID] = make_unique<Entity>(newID, comps);
+	entities[newID]->isModel = isModel;
 	std::cout << "Entity added with ID: " << newID << std::endl;
 	return newID;
 }
@@ -304,6 +305,15 @@ unsigned int Renderer::addMesh(Mesh_Type type, vector<Vertex> initVertices, vect
 }
 
 void Renderer::removeEntity(unsigned int eID) {
+	// remove related meshes and materials
+	for (Component& comp : entities[eID]->components) {
+		removeMesh(comp.meshID);
+	}
+	if (entities[eID]->isModel) {
+		for (Component& comp : entities[eID]->components) {
+			removeMaterial(comp.matID);
+		}
+	}
 	// remove entity from the map
 	entities.erase(eID);
 	// release the ID for reuse
@@ -329,7 +339,7 @@ void Renderer::removeLight(unsigned int lID) {
 	std::cout << "Light deleted with ID: " << lID << std::endl;
 }
 
-void Renderer::deleteMesh(unsigned int mID) {
+void Renderer::removeMesh(unsigned int mID) {
 	// remove mesh from the map
 	meshes.erase(mID);
 	// release the ID for reuse

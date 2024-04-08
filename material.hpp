@@ -21,6 +21,7 @@ class Material {
 public:
 	// common
 	unsigned int ID;
+	unsigned int inUse;
 	string name;
 	float shininess;
 	unsigned int isColor;		// if true, then the material is a color, else it is a collection of textures
@@ -50,6 +51,7 @@ public:
 		minLayers = 8.0f;
 		maxLayers = 32.0f;
 		name = "Material " + to_string(id);
+		inUse = 0;
 	}
 
 	static void init();

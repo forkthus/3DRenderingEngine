@@ -56,7 +56,7 @@ public:
 
 	void removeLight(unsigned int lID);
 
-	void deleteMesh(unsigned int mID);
+	inline void removeMesh(unsigned int mID);
 
 	void updateLight();
 
@@ -72,7 +72,7 @@ public:
 
 	void renderHighlightObjs();
 
-	void renderQuad();
+	inline void renderQuad();
 
 private:
 	unsigned int defaultShader;
