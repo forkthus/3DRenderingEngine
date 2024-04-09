@@ -6,8 +6,8 @@ You can use GUI to easily manage the objects in the scene.
 Directional Light, Spot Light, and point Light shadows  
 Normal/Parallax mapping  
 Model loading  
-Deferred Rendering
-Screen-Space Ambient Occlusion
+Deferred Rendering  
+Screen-Space Ambient Occlusion  
 Phasically Based Rendering (In Progress)  
 
 # Screenshots
