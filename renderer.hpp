@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "glm/glm.hpp"
 
 enum Light_Type;
 enum Mesh_Type;
@@ -58,47 +59,79 @@ public:
 
 	inline void removeMesh(unsigned int mID);
 
-	void updateLight();
-
 	void render(bool lightVisible = false);
+
+	void setupSkybox(vector<string> images);
+
+private:
+	void updateLight();
 
 	void updateShadowMaps(Shader& shader);
 
-	void renderScene(bool shadow, unsigned int shaderID = 0, bool lightVisible = false);
+	void renderScene(bool deferred, bool shadow, unsigned int shaderID = 0, bool lightVisible = false);
 
 	void renderSkyBox();
-
-	void setupSkybox(vector<string> images);
 
 	void renderHighlightObjs();
 
 	inline void renderQuad();
 
-private:
+	inline void initSSAO();
+
+	inline void initSkybox();
+
+	inline void initGBuffer();
+
+	inline void initShaders();
+
+	inline float lerp(float a, float b, float f);
+
+	// default shaders
 	unsigned int defaultShader;
-	unsigned int depthShader;
-	unsigned int depthPointShader;
+	unsigned int highlightShader;	// highling the outline of the object
+
+	// lighting cube for visible lights
 	unsigned int lightCubeShader;
 	unsigned int lightCubeMeshID;
+
+	// skybox
 	unsigned int skyboxShader;
 	unsigned int skyboxVAO;
 	unsigned int skyboxVBO;
+	unique_ptr<Texture> skyboxTexture;
+
+	// deferred rendering
 	unsigned int gBuffer;
 	unsigned int renderDepthBuffer;
 	unsigned int renderStencilBuffer;
 	unsigned int gPosition;
 	unsigned int gNormal;
 	unsigned int gAlbedoSpec;
-	unsigned int geometryPassShader;
+	unsigned int geometryPassColoredShader;
+	unsigned int geometryPassTexturedShader;
 	unsigned int lightingPassShader;
 	unsigned int quadVAO;
 	unsigned int quadVBO;
-	unique_ptr<Texture> skyboxTexture;
-	unsigned int highlightShader;
+
+	// SSAO
+	unsigned int SSAOshader;
+	unsigned int SSAOblurShader;
+	unsigned int SSAOnoiseTexture;
+	unsigned int SSAOfbo;
+	unsigned int SSAOblurFBO;
+	unsigned int SSAOcolorBuffer;
+	unsigned int SSAOblurBuffer;
+	vector<glm::vec3> SSAOkernel;
+
+	// IDs
 	ID entityID;
 	ID materialID;
 	ID meshID;
 	ID lightID;
+
+	// shadow mapping
+	unsigned int depthShader;
+	unsigned int depthPointShader;
 	unsigned int depthMapFBOs[MAX_SHADOW_MAPS];
 	unsigned int depthMaps[MAX_SHADOW_MAPS];
 	unsigned int depthCubeMapFBOs[MAX_SHADOW_MAPS];

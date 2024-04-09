@@ -8,9 +8,11 @@ layout (std140, binding = 0) uniform Camera {
 	mat4 view;
 
 	// camera position
-    vec3 viewPos;          
-};
+    vec3 viewPos;
 
+	// screen size
+	vec2 screenSize;
+};
 uniform mat4 model;
 
 void main()

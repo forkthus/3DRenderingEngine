@@ -115,6 +115,12 @@ public:
 		return glm::perspective(glm::radians(zoom), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 	}
 
+	void updateUBOScreenSize() {
+		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT)));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
 private:
 	inline void rotate(double angle, glm::vec3 axis) {
 		Quaternion R, quatFront, result;
@@ -139,7 +145,8 @@ private:
 	inline void setupUBO() {
 		glGenBuffers(1, &UBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec3), NULL, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec4) * 2, NULL, GL_STATIC_DRAW);
+		updateUBOScreenSize();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}

@@ -72,23 +72,22 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 void main() {
 	vec3 norm = Normal;
 	vec2 texCoords = TextCoords;
-	if (isColor == 0) {
-		if (heightCount > 0) {
-			// get new texture coordinates
-			vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
-			texCoords = ParallaxMapping(texCoords, viewDir);
-			if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
-				discard;
-		}
-		// calculate norm based on normal maps
-		vec3 normalTemp = vec3(0.0f);
-		if (normalCount > 0) {
-			for (uint i = 0; i < normalCount; i++) {
-				normalTemp += texture(texture_normal[i], texCoords).rgb * 2.0 - 1.0;
-			}
-			norm = normalize(TBN * normalize(normalTemp));
-		} 
+
+	if (heightCount > 0) {
+		// get new texture coordinates
+		vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
+		texCoords = ParallaxMapping(texCoords, viewDir);
+		if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
+			discard;
 	}
+	// calculate norm based on normal maps
+	vec3 normalTemp = vec3(0.0f);
+	if (normalCount > 0) {
+		for (uint i = 0; i < normalCount; i++) {
+			normalTemp += texture(texture_normal[i], texCoords).rgb * 2.0 - 1.0;
+		}
+		norm = normalize(TBN * normalize(normalTemp));
+	} 
 
 	// save the fragment position into the first texture
     gPosition = fragPos;
@@ -97,18 +96,14 @@ void main() {
 	// save the albedo(diffuse) and specular into the third texture
 	vec3 diffuse = vec3(0.0f);
 	float specular = 0.0f;
-	if (isColor == 0) {
-		// calculate the diffuse color
-		for (uint i = 0; i < diffuseCount; i++) {
-			diffuse += texture(texture_diffuse[i], texCoords).rgb;
-		}
-		// calculate the specular color
-		for (uint i = 0; i < specularCount; i++) {
-			specular += texture(texture_specular[i], texCoords).r;
-		}
-	} else {
-		diffuse = diffuseMat;
-		specular = specularMat.r;
+	
+	// calculate the diffuse color
+	for (uint i = 0; i < diffuseCount; i++) {
+		diffuse += texture(texture_diffuse[i], texCoords).rgb;
+	}
+	// calculate the specular color
+	for (uint i = 0; i < specularCount; i++) {
+		specular += texture(texture_specular[i], texCoords).r;
 	}
 
 	gAlbedoSpec.rgb = diffuse;

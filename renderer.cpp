@@ -10,6 +10,7 @@
 #include "texture.hpp"
 #include "ModelLoader.hpp"
 #include "light.hpp"
+#include <random>
 
 extern unsigned int WINDOW_WIDTH;
 extern unsigned int WINDOW_HEIGHT;
@@ -17,36 +18,10 @@ extern unsigned int WINDOW_HEIGHT;
 const unsigned int SHADOW_WIDTH = 4096;
 const unsigned int SHADOW_HEIGHT = 4096;
 
+const int NOISE_SIZE = 4;
+
 void Renderer::init() {
-	// create a default shader
-	unique_ptr<Shader> shader = make_unique<Shader>("shaders/default.vert", "shaders/default.frag");
-	// std::cout << "Creating Directional Shadow depth shader..." << std::endl;
-	unique_ptr<Shader> depth = make_unique<Shader>("shaders/depthShader.vert", "shaders/depthShader.frag");
-	depthShader = depth->ID;
-	shaders[depthShader] = move(depth);
-	// std::cout << "Creating Point Shadow depth shader..." << std::endl;
-	unique_ptr<Shader> point = make_unique<Shader>("shaders/depthPointShader.vert", "shaders/depthPointShader.frag", "shaders/depthPointShader.geom");
-	depthPointShader = point->ID;
-	shaders[depthPointShader] = move(point);
-	// std::cout << "Creating light shader..." << std::endl;
-	unique_ptr<Shader> lightShader = make_unique<Shader>("shaders/meshLights.vert", "shaders/meshLights.frag");
-	defaultShader = lightShader->ID;
-	shaders[defaultShader] = move(lightShader);
-	unique_ptr<Shader> lightCube = make_unique<Shader>("shaders/lightCube.vert", "shaders/lightCube.frag");
-	lightCubeShader = lightCube->ID;
-	shaders[lightCubeShader] = move(lightCube);
-	unique_ptr<Shader> skybox = make_unique<Shader>("shaders/skybox.vert", "shaders/skybox.frag");
-	skyboxShader = skybox->ID;
-	shaders[skyboxShader] = move(skybox);
-	unique_ptr<Shader> hightlight = make_unique<Shader>("shaders/highlight.vert", "shaders/highlight.frag");
-	highlightShader = hightlight->ID;
-	shaders[highlightShader] = move(hightlight);
-	unique_ptr<Shader> geometryPass = make_unique<Shader>("shaders/deferredShadingGeometry.vert", "shaders/deferredShadingGeometry.frag");
-	geometryPassShader = geometryPass->ID;
-	shaders[geometryPassShader] = move(geometryPass);
-	unique_ptr<Shader> lightingPass = make_unique<Shader>("shaders/deferredShadingLighting.vert", "shaders/deferredShadingLighting.frag");
-	lightingPassShader = lightingPass->ID;
-	shaders[lightingPassShader] = move(lightingPass);
+	initShaders();
 	// create a default material
 	addMaterial(true);
 	// create a default mesh for lightCube
@@ -100,130 +75,12 @@ void Renderer::init() {
 	//addLight(DIRECTIONAL);
 	//addLight(POINT);
 	//addLight(SPOT);
-
-	// setup framebuffer for deferred rendering
-	glGenFramebuffers(1, &gBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-
-	// position buffer
-	glGenTextures(1, &gPosition);
-	glBindTexture(GL_TEXTURE_2D, gPosition);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);		// 16 bit per channel for higher precision
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-	// normal buffer
-	glGenTextures(1, &gNormal);
-	glBindTexture(GL_TEXTURE_2D, gNormal);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);		// 16 bit per channel for higher precision
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-	// albedo + specular buffer
-	glGenTextures(1, &gAlbedoSpec);
-	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);		// 8 bit per channel
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-
-	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	glDrawBuffers(3, attachments);
-
-	// setup depth and stencil buffer for framebuffer
-	glGenRenderbuffers(1, &renderDepthBuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, renderDepthBuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderDepthBuffer);
 	
-	// check the completeness of framebuffer
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "Framebuffer for deferred rendering is not complete!" << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	initGBuffer();
 
-	glBindTexture(GL_TEXTURE_2D, 0);
-	// setup screen quad
-	float quadVertices[] = {
-		// positions		// texture Coords
-		-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-		-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-		 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	};
+	initSSAO();
 
-	glGenVertexArrays(1, &quadVAO);
-	glGenBuffers(1, &quadVBO);
-	glBindVertexArray(quadVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glBindVertexArray(0);
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// setup Skybox
-	float skyboxVertices[] = {
-		// positions          
-		-1.0f,  1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		-1.0f,  1.0f, -1.0f,
-		 1.0f,  1.0f, -1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		 1.0f, -1.0f,  1.0f
-	};
-
-	glGenVertexArrays(1, &skyboxVAO);
-	glGenBuffers(1, &skyboxVBO);
-	glBindVertexArray(skyboxVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	//setupSkybox({ "textures/right.jpg", "textures/left.jpg", "textures/top.jpg", "textures/bottom.jpg", "textures/front.jpg", "textures/back.jpg" });
-	//setupSkybox({ "textures/tf_right.png", "textures/tf_left.png", "textures/tf_top.png", "textures/tf_bottom.png", "textures/tf_front.png", "textures/tf_back.png" });
-	setupSkybox({ "textures/bluecloud_rt.jpg", "textures/bluecloud_lf.jpg", "textures/bluecloud_up.jpg", "textures/bluecloud_dn.jpg", "textures/bluecloud_ft.jpg", "textures/bluecloud_bk.jpg" });
+	initSkybox();
 }
 
 unsigned int Renderer::addLight(Light_Type type) {
@@ -366,8 +223,11 @@ void Renderer::render(bool lightVisible) {
 	updateLight();
 	Shader& depth = *shaders[depthShader];
 	Shader& depthPoint = *shaders[depthPointShader];
-	Shader& geometryPass = *shaders[geometryPassShader];
+	Shader& geometryPassColored = *shaders[geometryPassColoredShader];
+	Shader& geometryPassTextured = *shaders[geometryPassTexturedShader];
 	Shader& lightingPass = *shaders[lightingPassShader];
+	Shader& SSAOpass = *shaders[SSAOshader];
+	Shader& SSAOblur = *shaders[SSAOblurShader];
 
 	unsigned int dirCount = 0, pointCount = 0, spotCount = 0;
 
@@ -391,7 +251,7 @@ void Renderer::render(bool lightVisible) {
 				glUniformMatrix4fv(glGetUniformLocation(depthPointShader, ("lightSpaceMatrices[" + to_string(k) + "]").c_str()), 1, GL_FALSE, glm::value_ptr(l->lightSpaceMatrices[k]));
 				//std::cout << "lightSpaceMatrices[" << k << "]: " << glm::to_string(l->lightSpaceMatrices[k]) << std::endl;
 			}
-			renderScene(true, depthPointShader);
+			renderScene(false, true, depthPointShader);
 			
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -416,7 +276,7 @@ void Renderer::render(bool lightVisible) {
 			//std::cout << "lightSpaceMatrices[0]: " << glm::to_string(l->lightSpaceMatrices[0]) << std::endl;
 			glUniformMatrix4fv(glGetUniformLocation(depthShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(l->lightSpaceMatrices[0]));
 
-			renderScene(true, depthShader);
+			renderScene(false, true, depthShader);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -435,10 +295,12 @@ void Renderer::render(bool lightVisible) {
 		// geometry pass
 		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		renderScene(false, geometryPassShader);
+		renderScene(true, false);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// lighting pass
-		lightingPass.use();
+
+		// setup gBuffer textures
+		glActiveTexture(GL_TEXTURE26);
+		glBindTexture(GL_TEXTURE_2D, SSAOnoiseTexture);
 		glActiveTexture(GL_TEXTURE27);
 		glBindTexture(GL_TEXTURE_2D, gPosition);
 		glActiveTexture(GL_TEXTURE28);
@@ -446,11 +308,46 @@ void Renderer::render(bool lightVisible) {
 		glActiveTexture(GL_TEXTURE29);
 		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
 
+		// SSAO color pass 
+		glBindFramebuffer(GL_FRAMEBUFFER, SSAOfbo);
+		glClear(GL_COLOR_BUFFER_BIT);
+		SSAOpass.use();
+		glUniform1i(glGetUniformLocation(SSAOshader, "noiseTexture"), 26);
+		glUniform1i(glGetUniformLocation(SSAOshader, "gPosition"), 27);
+		glUniform1i(glGetUniformLocation(SSAOshader, "gNormal"), 28);
+		glUniform1i(glGetUniformLocation(SSAOshader, "noiseSize"), NOISE_SIZE);
+		for (unsigned int i = 0; i < 64; i++) {
+			glUniform3fv(glGetUniformLocation(SSAOshader, ("samples[" + to_string(i) + "]").c_str()), 1, glm::value_ptr(SSAOkernel[i]));
+		}
+		renderQuad();
+
+		// bind SSAO color buffer to the SSAO blur shader
+		glActiveTexture(GL_TEXTURE25);
+		glBindTexture(GL_TEXTURE_2D, SSAOcolorBuffer);
+		
+		// SSAO blur pass
+		glBindFramebuffer(GL_FRAMEBUFFER, SSAOblurFBO);
+		glClear(GL_COLOR_BUFFER_BIT);
+		SSAOblur.use();
+		glUniform1i(glGetUniformLocation(SSAOblurShader, "SSAO"), 25);
+		glUniform1i(glGetUniformLocation(SSAOblurShader, "noiseSize"), NOISE_SIZE);
+		renderQuad();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// bind SSAO blur buffer to the lighting pass
+		glActiveTexture(GL_TEXTURE25);
+		glBindTexture(GL_TEXTURE_2D, SSAOblurBuffer);
+
+		// lighting pass
+		lightingPass.use();
+
 		// setup uniforms for lighting pass
 		// updateShadowMaps(lightingPass);
+		glUniform1i(glGetUniformLocation(lightingPassShader, "SSAO"), 25);
 		glUniform1i(glGetUniformLocation(lightingPassShader, "gPosition"), 27);
 		glUniform1i(glGetUniformLocation(lightingPassShader, "gNormal"), 28);
 		glUniform1i(glGetUniformLocation(lightingPassShader, "gAlbedoSpec"), 29);
+		
 		renderQuad();
 
 		// copy depth and stencil buffer to default framebuffer
@@ -462,7 +359,7 @@ void Renderer::render(bool lightVisible) {
 	}
 	else {
 		// forward rendering
-		renderScene(false);
+		renderScene(false, false);
 	}
 	renderHighlightObjs();
 	renderSkyBox();
@@ -528,7 +425,7 @@ void Renderer::updateShadowMaps(Shader& shader) {
 	}
 }
 
-void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible) {
+void Renderer::renderScene(bool deferred, bool shadow, unsigned int shaderID, bool lightVisible) {
 	Shader& highlight = *shaders[highlightShader];
 	for (auto const& [eID, e] : entities) {
 		if (e->render) {
@@ -537,7 +434,7 @@ void Renderer::renderScene(bool shadow, unsigned int shaderID, bool lightVisible
 			for (auto& comp : e->components) {
 				Mesh& mesh = *(meshes[comp.meshID]);
 				Material& mat = *(materials[comp.matID]);
-				Shader& shader = (shaderID != 0) ? *shaders[shaderID] : *shaders[mat.shaderID];
+				Shader& shader = (shaderID != 0) ? *shaders[shaderID] : (deferred ? (mat.isColor == 0 ? *shaders[geometryPassTexturedShader] : *shaders[geometryPassColoredShader]) : *shaders[mat.shaderID]);
 
 				if (!shadow) {
 					// std::cout << "Setting up uniforms\n" << std::endl;
@@ -610,4 +507,258 @@ void Renderer::renderQuad() {
 	glBindVertexArray(quadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
+}
+
+void Renderer::initSSAO() {
+	// generate random sample kernel
+	std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
+	std::default_random_engine generator;
+
+	int kernelSize = 64;
+
+	for (int i = 0; i < kernelSize; i++) {
+		glm::vec3 samplePoint(
+			randomFloats(generator) * 2.0 - 1.0,		// make it hemisphere
+			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator)
+		);
+		samplePoint = glm::normalize(samplePoint);
+		samplePoint *= randomFloats(generator);
+
+		// make the kernel samples closer to the origin
+		float scale = float(i) / kernelSize;
+		scale = lerp(0.1f, 1.0f, scale * scale);
+		samplePoint *= scale;
+		SSAOkernel.push_back(samplePoint);
+	}
+
+	// generate kernel rotations for better results
+	vector<glm::vec3> SSAOkernelRotations;
+	for (int i = 0; i < NOISE_SIZE * NOISE_SIZE; i++) {
+		// generate a rotation around z-axis
+		glm::vec3 rotation(
+			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator) * 2.0 - 1.0,
+			0.0f
+		);
+		SSAOkernelRotations.push_back(rotation);
+	}
+
+	// create the 4x4 noise texture
+	glGenTextures(1, &SSAOnoiseTexture);
+	glBindTexture(GL_TEXTURE_2D, SSAOnoiseTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, &SSAOkernelRotations[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// create the SSAO framebuffer object
+	glGenFramebuffers(1, &SSAOfbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOfbo);
+
+	// create the color buffer
+	glGenTextures(1, &SSAOcolorBuffer);
+	glBindTexture(GL_TEXTURE_2D, SSAOcolorBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);		// we only need one channel to record the occulusion factor
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// attach the color buffer to the framebuffer
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOcolorBuffer, 0);
+	// check the completeness of framebuffer
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer for SSAO is not complete!" << std::endl;
+
+	// create the blur framebuffer object
+	glGenFramebuffers(1, &SSAOblurFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOblurFBO);
+	
+	// create the blurred color buffer;
+	glGenTextures(1, &SSAOblurBuffer);
+	glBindTexture(GL_TEXTURE_2D, SSAOblurBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// attach the color buffer to the framebuffer
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOblurBuffer, 0);
+	// check the completeness of framebuffer
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer for SSAO is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::initSkybox() {
+	// initialize Skybox
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//setupSkybox({ "textures/right.jpg", "textures/left.jpg", "textures/top.jpg", "textures/bottom.jpg", "textures/front.jpg", "textures/back.jpg" });
+	//setupSkybox({ "textures/tf_right.png", "textures/tf_left.png", "textures/tf_top.png", "textures/tf_bottom.png", "textures/tf_front.png", "textures/tf_back.png" });
+	setupSkybox({ "textures/bluecloud_rt.jpg", "textures/bluecloud_lf.jpg", "textures/bluecloud_up.jpg", "textures/bluecloud_dn.jpg", "textures/bluecloud_ft.jpg", "textures/bluecloud_bk.jpg" });
+}
+
+void Renderer::initGBuffer() {
+	// setup framebuffer for deferred rendering
+	glGenFramebuffers(1, &gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+	// position buffer
+	glGenTextures(1, &gPosition);
+	glBindTexture(GL_TEXTURE_2D, gPosition);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);		// 16 bit per channel for higher precision
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+	// normal buffer
+	glGenTextures(1, &gNormal);
+	glBindTexture(GL_TEXTURE_2D, gNormal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);		// 16 bit per channel for higher precision
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+	// albedo + specular buffer
+	glGenTextures(1, &gAlbedoSpec);
+	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);		// 8 bit per channel
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+
+	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	// setup depth and stencil buffer for framebuffer
+	glGenRenderbuffers(1, &renderDepthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderDepthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderDepthBuffer);
+
+	// check the completeness of framebuffer
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer for deferred rendering is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	// setup screen quad
+	float quadVertices[] = {
+		// positions		// texture Coords
+		-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+		 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	};
+
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glBindVertexArray(0);
+}
+
+void Renderer::initShaders() {
+	// create a default shader
+	unique_ptr<Shader> shader = make_unique<Shader>("shaders/default.vert", "shaders/default.frag");
+	// std::cout << "Creating Directional Shadow depth shader..." << std::endl;
+	unique_ptr<Shader> depth = make_unique<Shader>("shaders/depthShader.vert", "shaders/depthShader.frag");
+	depthShader = depth->ID;
+	shaders[depthShader] = move(depth);
+	// std::cout << "Creating Point Shadow depth shader..." << std::endl;
+	unique_ptr<Shader> point = make_unique<Shader>("shaders/depthPointShader.vert", "shaders/depthPointShader.frag", "shaders/depthPointShader.geom");
+	depthPointShader = point->ID;
+	shaders[depthPointShader] = move(point);
+	// std::cout << "Creating light shader..." << std::endl;
+	unique_ptr<Shader> lightShader = make_unique<Shader>("shaders/meshLights.vert", "shaders/meshLights.frag");
+	defaultShader = lightShader->ID;
+	shaders[defaultShader] = move(lightShader);
+	unique_ptr<Shader> lightCube = make_unique<Shader>("shaders/lightCube.vert", "shaders/lightCube.frag");
+	lightCubeShader = lightCube->ID;
+	shaders[lightCubeShader] = move(lightCube);
+	unique_ptr<Shader> skybox = make_unique<Shader>("shaders/skybox.vert", "shaders/skybox.frag");
+	skyboxShader = skybox->ID;
+	shaders[skyboxShader] = move(skybox);
+	unique_ptr<Shader> hightlight = make_unique<Shader>("shaders/highlight.vert", "shaders/highlight.frag");
+	highlightShader = hightlight->ID;
+	shaders[highlightShader] = move(hightlight);
+	unique_ptr<Shader> geometryPassColored = make_unique<Shader>("shaders/deferredShadingGeometry.vert", "shaders/geometryPassColored.frag");
+	geometryPassColoredShader = geometryPassColored->ID;
+	shaders[geometryPassColoredShader] = move(geometryPassColored);
+	unique_ptr<Shader> geometryPassTextured = make_unique<Shader>("shaders/deferredShadingGeometry.vert", "shaders/geometryPassTextured.frag");
+	geometryPassTexturedShader = geometryPassTextured->ID;
+	shaders[geometryPassTexturedShader] = move(geometryPassTextured);
+	unique_ptr<Shader> lightingPass = make_unique<Shader>("shaders/deferredShadingLighting.vert", "shaders/deferredShadingLighting.frag");
+	lightingPassShader = lightingPass->ID;
+	shaders[lightingPassShader] = move(lightingPass);
+	unique_ptr<Shader> SSAO = make_unique<Shader>("shaders/SSAO.vert", "shaders/SSAOcolor.frag");
+	SSAOshader = SSAO->ID;
+	shaders[SSAOshader] = move(SSAO);
+	unique_ptr<Shader> SSAOBlur = make_unique<Shader>("shaders/SSAO.vert", "shaders/SSAOblur.frag");
+	SSAOblurShader = SSAOBlur->ID;
+	shaders[SSAOblurShader] = move(SSAOBlur);
+}
+
+float Renderer::lerp(float a, float b, float f) {
+	// return the linear interpolation between a and b
+	return a + f * (b - a);
 }

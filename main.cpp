@@ -164,6 +164,7 @@ void window_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 	WINDOW_WIDTH = width;
 	WINDOW_HEIGHT = height;
+	camera.updateUBOScreenSize();
 }
 
 // handle camera movement by the mouse

@@ -62,6 +62,9 @@ layout (std140, binding = 0) uniform Camera {
 
 	// camera position
     vec3 viewPos;
+
+	// screen size
+	vec2 screenSize;
 };
 
 // lights properties
@@ -100,6 +103,7 @@ layout(std140, binding = 2) uniform Material {
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
+uniform sampler2D SSAO;
 uniform sampler2D shadowMap[MAX_NUM_TEXTURES];
 uniform samplerCube shadowCubeMap[MAX_NUM_TEXTURES];
 
@@ -107,9 +111,9 @@ in vec2 TextCoords;
 
 out vec4 fragColor;
 
-vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity);
-vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity);
-vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity);
+vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion);
+vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion);
+vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion);
 float calcDirecShadow(uint index, float bias, vec3 fragPos, mat4 lightSpaceMatrix);
 float calcPointShadow(uint index, float bias, vec3 fragPos);
 
@@ -119,23 +123,24 @@ void main() {
     vec3 normal = texture(gNormal, TextCoords).rgb;
     vec3 albedo = texture(gAlbedoSpec, TextCoords).rgb;
     float specularIntensity = texture(gAlbedoSpec, TextCoords).a;
+	float ambientOcclusion = texture(SSAO, TextCoords).r;
 
     // get Directional light
 	vec3 dir = vec3(0.0f);
 	for(uint i = 0; i < dirLightCount; i++) {
-		dir += calcDirLight(dirLight[i], i, normal, fragPos, albedo, specularIntensity);	
+		dir += calcDirLight(dirLight[i], i, normal, fragPos, albedo, specularIntensity, ambientOcclusion);	
 	}
 	
 	// get Point light
 	vec3 point = vec3(0.0f);
 	for(uint i = 0; i < pointLightCount; i++) {
-		point += calcPointLight(pointLight[i], i, normal, fragPos, albedo, specularIntensity);
+		point += calcPointLight(pointLight[i], i, normal, fragPos, albedo, specularIntensity, ambientOcclusion);
 	}
 
 	// get Spot light
 	vec3 spot = vec3(0.0f);
 	for(uint i = 0; i < spotLightCount; i++) {
-		spot += calcSpotLight(spotLight[i], i, normal, fragPos, albedo, specularIntensity);
+		spot += calcSpotLight(spotLight[i], i, normal, fragPos, albedo, specularIntensity, ambientOcclusion);
 	}
 	
 	fragColor = vec4(dir + point + spot, 1.0f);
@@ -145,7 +150,7 @@ void main() {
 	// fragColor = vec4(fragPos, 1.0f);
 }
 
-vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity) {
+vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion) {
 	//vec4 fragPosLightSpace = light.lightSpaceMatrix * vec4(fragPos, 1.0);
 	vec3 lightDir = normalize(-light.direction);
 	// vec3 norm = normalize(Normal);
@@ -167,7 +172,7 @@ vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albe
 	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
-	ambient = albedo * light.ambient;
+	ambient = albedo * light.ambient * ambientOcclusion;
 	diffuse = albedo * light.diffuse * diffuseVar;
 
 	specular = specularIntensity * light.specular * specularVar;
@@ -178,7 +183,7 @@ vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albe
 	return ambient + (1.0 - shadow) * (diffuse + specular);
 }
 
-vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity) {
+vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion) {
 	vec3 lightDir = normalize(light.position - fragPos);
 	float dist = length(light.position - fragPos);
 	float attenuation = 1.0f / (light.constant + pow(light.linear * dist, 2.2) + pow(light.quadratic * dist * dist, 2.2));
@@ -198,7 +203,7 @@ vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 
 	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
-	ambient = albedo * light.ambient;
+	ambient = albedo * light.ambient * ambientOcclusion;
 	diffuse = albedo * light.diffuse * diffuseVar;
 
 	specular = specularIntensity * light.specular * specularVar;
@@ -208,7 +213,7 @@ vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 
 	return (ambient + (1.0 - shadow) * (diffuse + specular)) * attenuation;
 }
 
-vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity) {
+vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion) {
 	// Spot light
 	vec3 lightDir = normalize(light.position - fragPos);
 	float theta = dot(-lightDir, light.direction);
@@ -231,7 +236,7 @@ vec3 calcSpotLight(SpotLight light, uint index, vec3 norm, vec3 fragPos, vec3 al
 	float specularVar = pow(max(dot(norm, halfwayDir), 0.0), shininess);
 	vec3 specular;
 
-	ambient = albedo * light.ambient;
+	ambient = albedo * light.ambient * ambientOcclusion;
 	diffuse = albedo * light.diffuse * diffuseVar;
 
 	specular = specularIntensity * light.specular * specularVar;
