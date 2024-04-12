@@ -8,7 +8,7 @@ Normal/Parallax mapping
 Model loading  
 Deferred Rendering  
 Screen-Space Ambient Occlusion  
-Phasically Based Rendering (In Progress)  
+Physically Based Rendering (In Progress)  
 
 # Screenshots
 ![container](screenshots/container.PNG)
