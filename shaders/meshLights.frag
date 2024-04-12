@@ -64,6 +64,10 @@ layout (std140, binding = 0) uniform Camera {
 
 	// screen size
 	vec2 screenSize;
+
+	// exposure and gamma
+	float exposure;
+	float gamma;
 };
 
 // lights properties
@@ -194,8 +198,8 @@ void main() {
 	float a = diffuseCount > 0 ? texture(texture_diffuse[0], TextCoords).a : 1.0f;
 	
 	fragColor = vec4(dir + point + spot, a);
-	float gamma = 2.2;
-	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
+//	float gamma = 2.2;
+//	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
 }
 
 vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec2 textureCoords) {

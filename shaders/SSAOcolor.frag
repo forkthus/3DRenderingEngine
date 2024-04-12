@@ -11,6 +11,10 @@ layout (std140, binding = 0) uniform Camera {
 
 	// screen size
 	vec2 screenSize;
+
+	// exposure and gamma
+	float exposure;
+	float gamma;
 };
 
 in vec2 TextCoords;

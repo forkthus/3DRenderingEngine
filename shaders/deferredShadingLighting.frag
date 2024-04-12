@@ -65,6 +65,10 @@ layout (std140, binding = 0) uniform Camera {
 
 	// screen size
 	vec2 screenSize;
+
+	// exposure and gamma
+	float exposure;
+	float gamma;
 };
 
 // lights properties
@@ -99,6 +103,9 @@ layout(std140, binding = 2) uniform Material {
     uint heightCount;
 };
 
+layout (location = 0) out vec4 fragColor;
+layout (location = 1) out vec4 brightColor;
+
 // textures of geometry pass
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
@@ -108,8 +115,6 @@ uniform sampler2D shadowMap[MAX_NUM_TEXTURES];
 uniform samplerCube shadowCubeMap[MAX_NUM_TEXTURES];
 
 in vec2 TextCoords;
-
-out vec4 fragColor;
 
 vec3 calcDirLight(DirLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion);
 vec3 calcPointLight(PointLight light, uint index, vec3 norm, vec3 fragPos, vec3 albedo, float specularIntensity, float ambientOcclusion);
@@ -144,8 +149,14 @@ void main() {
 	}
 	
 	fragColor = vec4(dir + point + spot, 1.0f);
-	float gamma = 2.2;
-	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
+
+	// check if the fragment is brighter than a threshold
+	float brightness = dot(fragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+	// if it's brighter, keep it in the brightcolor buffer
+	brightColor = brightness > 1.0 ? vec4(fragColor.rgb, 1.0f) : vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+//	float gamma = 2.2;
+//	fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
 
 	// fragColor = vec4(fragPos, 1.0f);
 }

@@ -46,11 +46,15 @@ public:
 	float zoom;
 	float sensitivity;
 	float mouseSpeed;
+	float exposure;
+	float gamma;
 
 	Camera(glm::vec3 newPos = glm::vec3(0.0f), glm::vec3 newFront = glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3 newWorldUp = glm::vec3(0.0f, 1.0f, 0.0f)) {
 		zoom = 45.0f;
 		sensitivity = 200.0f;
 		mouseSpeed = 2.5f;
+		exposure = 1.0f;
+		gamma = 2.2f;
 
 		pos = newPos;
 		front = newFront;
@@ -118,6 +122,9 @@ public:
 	void updateUBOScreenSize() {
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT)));
+		// gamma and exposure
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec4) + sizeof(glm::vec2), sizeof(float), &exposure);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2 + sizeof(glm::vec4) + sizeof(glm::vec2) + sizeof(float), sizeof(float), &gamma);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 

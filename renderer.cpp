@@ -47,6 +47,9 @@ void Renderer::init() {
 			GL_TEXTURE_2D, depthMaps[i], 0);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
+		// check the completeness of framebuffer
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer for directional light shadow mapping is not complete!" << std::endl;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -68,7 +71,11 @@ void Renderer::init() {
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMaps[i], 0);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
+		// check the completeness of framebuffer
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer for point lights shadow mapping is not complete!" << std::endl;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	}
 
@@ -77,10 +84,13 @@ void Renderer::init() {
 	//addLight(SPOT);
 	
 	initGBuffer();
-
+	glBindTexture(GL_TEXTURE_2D, 0);
 	initSSAO();
-
+	glBindTexture(GL_TEXTURE_2D, 0);
 	initSkybox();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	initHDR();
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 unsigned int Renderer::addLight(Light_Type type) {
@@ -228,6 +238,8 @@ void Renderer::render(bool lightVisible) {
 	Shader& lightingPass = *shaders[lightingPassShader];
 	Shader& SSAOpass = *shaders[SSAOshader];
 	Shader& SSAOblur = *shaders[SSAOblurShader];
+	Shader& lightCube = *shaders[lightCubeShader];
+	Shader& hdr = *shaders[HDRshader];
 
 	unsigned int dirCount = 0, pointCount = 0, spotCount = 0;
 
@@ -286,7 +298,6 @@ void Renderer::render(bool lightVisible) {
 	// render the scene
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	
 	//renderSkyBox();
 
 	// deferred rendering
@@ -310,7 +321,7 @@ void Renderer::render(bool lightVisible) {
 
 		// SSAO color pass 
 		glBindFramebuffer(GL_FRAMEBUFFER, SSAOfbo);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		SSAOpass.use();
 		glUniform1i(glGetUniformLocation(SSAOshader, "noiseTexture"), 26);
 		glUniform1i(glGetUniformLocation(SSAOshader, "gPosition"), 27);
@@ -348,24 +359,38 @@ void Renderer::render(bool lightVisible) {
 		glUniform1i(glGetUniformLocation(lightingPassShader, "gNormal"), 28);
 		glUniform1i(glGetUniformLocation(lightingPassShader, "gAlbedoSpec"), 29);
 		
+		// bind the HDR framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, HDRfbo);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
 		renderQuad();
 
-		// copy depth and stencil buffer to default framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// copy depth and stencil buffer to default framebuffer (HDR buffer)
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, HDRfbo);
 		glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		//glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	else {
 		// forward rendering
+		// bind the HDR framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, HDRfbo);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		renderScene(false, false);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
+	glBindFramebuffer(GL_FRAMEBUFFER, HDRfbo);
 	renderHighlightObjs();
 	renderSkyBox();
 	
 	// draw the lights
-	Shader &lightCube = *shaders[lightCubeShader];
 	for (auto const& [lID, l] : lights) {
 		if (l->type != DIRECTIONAL && l->visible) {
 			// create a unit cube to represent the light
@@ -381,6 +406,30 @@ void Renderer::render(bool lightVisible) {
 			mesh.draw(lightCube);
 		}
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	bool framebufferToUse = renderBloom();
+
+	// render the HDR buffer to the screen
+	hdr.use();
+	glActiveTexture(GL_TEXTURE26);
+	glBindTexture(GL_TEXTURE_2D, HDRcolorBuffer[0]);
+	glActiveTexture(GL_TEXTURE27);
+	glBindTexture(GL_TEXTURE_2D, pingpongColorBuffers[framebufferToUse]);
+	glUniform1i(glGetUniformLocation(HDRshader, "hdrTex"), 26);
+	glUniform1i(glGetUniformLocation(HDRshader, "bloomTex"), 27);
+	renderQuad();
+
+	//// copy depth and stencil buffer to default framebuffer
+	//glBindFramebuffer(GL_READ_FRAMEBUFFER, HDRfbo);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	//glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	// renderHighlightObjs();
+	//renderSkyBox();
+	// render the highlight objects
+	
 }
 
 void Renderer::updateShadowMaps(Shader& shader) {
@@ -507,6 +556,28 @@ void Renderer::renderQuad() {
 	glBindVertexArray(quadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
+}
+
+bool Renderer::renderBloom() {
+	bool horizontal = true, first_iteration = true;
+	unsigned int amount = 10;
+	Shader& shader = *shaders[bloomShader];
+
+	shader.use();
+	glActiveTexture(GL_TEXTURE26);
+	glUniform1i(glGetUniformLocation(shader.ID, "image"), 26);
+	for (unsigned int i = 0; i < amount; i++) {
+		glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+		glUniform1i(glGetUniformLocation(shader.ID, "horizontal"), horizontal);
+		glBindTexture(GL_TEXTURE_2D, first_iteration ? HDRcolorBuffer[1] : pingpongColorBuffers[!horizontal]);
+		renderQuad();
+		horizontal = !horizontal;
+		if (first_iteration)
+			first_iteration = false;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return !horizontal;
 }
 
 void Renderer::initSSAO() {
@@ -720,42 +791,121 @@ void Renderer::initGBuffer() {
 void Renderer::initShaders() {
 	// create a default shader
 	unique_ptr<Shader> shader = make_unique<Shader>("shaders/default.vert", "shaders/default.frag");
-	// std::cout << "Creating Directional Shadow depth shader..." << std::endl;
+	// shadow mapping
+	// directional and spot light
 	unique_ptr<Shader> depth = make_unique<Shader>("shaders/depthShader.vert", "shaders/depthShader.frag");
 	depthShader = depth->ID;
 	shaders[depthShader] = move(depth);
-	// std::cout << "Creating Point Shadow depth shader..." << std::endl;
+	// point light
 	unique_ptr<Shader> point = make_unique<Shader>("shaders/depthPointShader.vert", "shaders/depthPointShader.frag", "shaders/depthPointShader.geom");
 	depthPointShader = point->ID;
 	shaders[depthPointShader] = move(point);
-	// std::cout << "Creating light shader..." << std::endl;
+
+	// default foward rendering shader
 	unique_ptr<Shader> lightShader = make_unique<Shader>("shaders/meshLights.vert", "shaders/meshLights.frag");
 	defaultShader = lightShader->ID;
 	shaders[defaultShader] = move(lightShader);
+
+	// visible light cube
 	unique_ptr<Shader> lightCube = make_unique<Shader>("shaders/lightCube.vert", "shaders/lightCube.frag");
 	lightCubeShader = lightCube->ID;
 	shaders[lightCubeShader] = move(lightCube);
+
+	// skybox
 	unique_ptr<Shader> skybox = make_unique<Shader>("shaders/skybox.vert", "shaders/skybox.frag");
 	skyboxShader = skybox->ID;
 	shaders[skyboxShader] = move(skybox);
+
+	// object highlight
 	unique_ptr<Shader> hightlight = make_unique<Shader>("shaders/highlight.vert", "shaders/highlight.frag");
 	highlightShader = hightlight->ID;
 	shaders[highlightShader] = move(hightlight);
+
+	// deferred shading
+	// geometry pass
 	unique_ptr<Shader> geometryPassColored = make_unique<Shader>("shaders/deferredShadingGeometry.vert", "shaders/geometryPassColored.frag");
 	geometryPassColoredShader = geometryPassColored->ID;
 	shaders[geometryPassColoredShader] = move(geometryPassColored);
 	unique_ptr<Shader> geometryPassTextured = make_unique<Shader>("shaders/deferredShadingGeometry.vert", "shaders/geometryPassTextured.frag");
 	geometryPassTexturedShader = geometryPassTextured->ID;
 	shaders[geometryPassTexturedShader] = move(geometryPassTextured);
+
+	// lighting pass
 	unique_ptr<Shader> lightingPass = make_unique<Shader>("shaders/deferredShadingLighting.vert", "shaders/deferredShadingLighting.frag");
 	lightingPassShader = lightingPass->ID;
 	shaders[lightingPassShader] = move(lightingPass);
+
+	// SSAO
 	unique_ptr<Shader> SSAO = make_unique<Shader>("shaders/SSAO.vert", "shaders/SSAOcolor.frag");
 	SSAOshader = SSAO->ID;
 	shaders[SSAOshader] = move(SSAO);
 	unique_ptr<Shader> SSAOBlur = make_unique<Shader>("shaders/SSAO.vert", "shaders/SSAOblur.frag");
 	SSAOblurShader = SSAOBlur->ID;
 	shaders[SSAOblurShader] = move(SSAOBlur);
+
+	// HDR
+	unique_ptr<Shader> HDR = make_unique<Shader>("shaders/SSAO.vert", "shaders/hdr.frag");
+	HDRshader = HDR->ID;
+	shaders[HDRshader] = move(HDR);
+
+	// bloom
+	unique_ptr<Shader> bloom = make_unique<Shader>("shaders/SSAO.vert", "shaders/gaussianblur.frag");
+	bloomShader = bloom->ID;
+	shaders[bloomShader] = move(bloom);
+}
+
+void Renderer::initHDR() {
+	// setup framebuffer
+	glGenFramebuffers(1, &HDRfbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, HDRfbo);
+
+	// create color buffers
+	for (unsigned int i = 0; i < 2; i++) {
+		glGenTextures(1, &HDRcolorBuffer[i]);
+		glBindTexture(GL_TEXTURE_2D, HDRcolorBuffer[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		// attach
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, HDRcolorBuffer[i], 0);
+	}
+
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+
+	// depth buffer
+	glGenRenderbuffers(1, &HDRdepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, HDRdepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	// attach
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, HDRdepth);
+
+	// check the completeness of framebuffer
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer for HDR is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// bloom 
+	glGenFramebuffers(2, pingpongFBO);
+	glGenTextures(2, pingpongColorBuffers);
+
+	for (unsigned int i = 0; i < 2; i++) {
+		glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+		glBindTexture(GL_TEXTURE_2D, pingpongColorBuffers[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorBuffers[i], 0);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer for bloom is not complete!" << std::endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 float Renderer::lerp(float a, float b, float f) {

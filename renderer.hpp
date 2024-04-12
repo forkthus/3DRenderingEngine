@@ -76,6 +76,8 @@ private:
 
 	inline void renderQuad();
 
+	bool renderBloom();
+
 	inline void initSSAO();
 
 	inline void initSkybox();
@@ -84,7 +86,20 @@ private:
 
 	inline void initShaders();
 
+	inline void initHDR();
+
 	inline float lerp(float a, float b, float f);
+
+	// HDR
+	unsigned int HDRfbo;
+	unsigned int HDRcolorBuffer[2];
+	unsigned int HDRdepth;
+	unsigned int HDRshader;
+	
+	// bloom
+	unsigned int pingpongFBO[2];
+	unsigned int pingpongColorBuffers[2];
+	unsigned int bloomShader;
 
 	// default shaders
 	unsigned int defaultShader;
